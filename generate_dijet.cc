@@ -36,6 +36,8 @@ using namespace Pythia8;
 #include "TRandom3.h"
 #include "TMath.h"
 #include "spline.h"
+#include <fstream>
+
 int mycount=0;
 Double_t E= 2.71828182845904523536;
 struct MJet{
@@ -245,18 +247,12 @@ int main(int argc, char *argv[]){
   int nEvent =2000;
   bool lowpT =true;
   int fitNUM, fitMAX;
-  std::string outfilename;
+  std::string outfilebegin;
+  std::string outfileend = ".root";
   std::string writeSet = "RECREATE";
+  int fileN =1;
   if(argc==2||argc==3){
     std::string arg1(argv[1]);
-    if(argc==3){
-      if(argv[2][0]=='o')
-        writeSet = "RECREATE";
-      else if(argv[2][0]=='a')
-        writeSet = "UPDATE";
-      else
-        return 6;
-    }
     if(arg1=="low")
       lowpT=true;
     else if(arg1=="high")
@@ -265,18 +261,43 @@ int main(int argc, char *argv[]){
       return 8;
   }
   if(lowpT)
-    outfilename = "dijet100.root";
+    outfilebegin = "dijet100";
   else
-    outfilename = "dijet200.root";
+    outfilebegin = "dijet200";
 
-  TFile *f = new TFile(outfilename.c_str(),writeSet.c_str());
-  TTree *t;
-  if(writeSet=="UPDATE"){
-    t= (TTree*) f->Get("tree100");
+  if(argc<3||(argc==3&&argv[2][0]=='o')){
+    bool deleting=true;
+    using namespace std;
+    string filename;
+    while(deleting){
+      filename=outfilebegin+to_string(fileN)+outfileend;
+      if(remove(filename.c_str())!=0){
+        deleting=false;
+      }
+      else{
+       fileN++; 
+      }
+    }
+    fileN=1;
   }
   else{
-    t=new TTree("tree100","100pThat events");
+    bool running=true;
+    using namespace std;
+    string filename;
+    while(running){
+      filename=outfilebegin+to_string(fileN)+outfileend;
+      ifstream infile(filename);
+      if(infile.good()){
+        fileN++;
+      }
+      else{
+        running=false;
+      }
+    }
   }
+  std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
+  TFile *f = new TFile(outfilename.c_str(),writeSet.c_str());
+  TTree *t=new TTree("tree100","100pThat events");
   if(lowpT){
     fitNUM =100;
     fitMAX = 126;
