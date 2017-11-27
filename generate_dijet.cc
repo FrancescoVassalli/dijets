@@ -50,6 +50,7 @@ struct Parton{
 };
 struct XjT{
   float Xj;
+  float fat;
   int type;
 };
 
@@ -148,18 +149,21 @@ int eType(Parton *p1,Parton *p2, float phi, float y){
 	return 3;  //leading jet is a gluon and sub is quark
     }
   else{
-    if(isQuark(*p1)&&p2->id==21) return 2; //if lead is quark and sub is gluon
+    if(isQuark(*p1)&&p2->id==21) 
+      return 2; //if lead is quark and sub is gluon
   }
   return -1;
 }
 
 
-void jetMax1(std::vector<float> jets, float* jet, float max){
+int jetMax1(std::vector<float> jets, float* jet, float max){
   *jet=0;
+  int r=-1;
   if(max==0){
       for(int i=0; i<jets.size();i++){
 	       if(jets[i]>*jet){
 	       *jet=jets[i];
+         r=i;
 	       }
       }
   }
@@ -167,9 +171,11 @@ void jetMax1(std::vector<float> jets, float* jet, float max){
     for(int i=0; i<jets.size();i++){
 	     if(jets[i] >*jet && jets[i]<max){
 	       *jet=jets[i];
+         r=i;
 	     }
     }
   }
+  return r;
 }
 
 void jetMax2(int count, int *index, float *jet, float jet_a[], float jet_max, int min){
@@ -228,10 +234,48 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
   *phi = jet_phi[index];
   *y = jet_y[index];
 }
-int main(){
-  int nEvent =35000;
-  bool lowpT = false;
+/**
+arg#0 = run command
+arg#1 = run state low for lowpT high for highpT
+arg#2 = run state o for over write a for append 
+arg#3 = number of events 
+can be run without arguments 
+**/
+int main(int argc, char *argv[]){ 
+  int nEvent =2000;
+  bool lowpT =true;
   int fitNUM, fitMAX;
+  std::string outfilename;
+  std::string writeSet = "RECREATE";
+  if(argc==2||argc==3){
+    std::string arg1(argv[1]);
+    if(argc==3){
+      if(argv[2][0]=='o')
+        writeSet = "RECREATE";
+      else if(argv[2][0]=='a')
+        writeSet = "UPDATE";
+      else
+        return 6;
+    }
+    if(arg1=="low")
+      lowpT=true;
+    else if(arg1=="high")
+      lowpT=false;
+    else
+      return 8;
+  }
+  if(lowpT)
+    outfilename = "dijet100.root";
+  else
+    outfilename = "dijet200.root";
+  TFile *f = new TFile(outfilename.c_str(),writeSet.c_str());
+  TTree *t;
+  if(writeSet=="UPDATE"){
+    t= (TTree*) f->Get("tree100");
+  }
+  else{
+    t=new TTree("tree100","100pThat events");
+  }
   if(lowpT){
     fitNUM =100;
     fitMAX = 126;
@@ -251,31 +295,29 @@ int main(){
   pythia.readString("Beams:eCM = 2760.");
   pythia.readString("HardQCD:all = on");
   if(lowpT)
-    pythia.readString("PhaseSpace:pTHatMin = 100.");
+    pythia.readString("PhaseSpace:pTHatMin = 75.");
   else
-    pythia.readString("PhaseSpace:pTHatMin = 200.");
+    pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
 
+  SlowJet fatjet(-1, 0.8, 10,4,2,1);
   SlowJet slowJet( -1, 0.4, 10, 4, 2, 1);
-  TFile *f;
-  if(lowpT)
-    f = new TFile("dijet100.root","RECREATE");
-  else
-    f = new TFile("dijet200.root","RECREATE");
 
   int jet_n;
+  int fatjetcount;
   float highjet;
   float lowjet;
-  float jet_pt[100];
+  float jet_pt[100]; // do I need fatjets?
+
   float jet_y[100];
   float jet_phi[100];
   float mult[100];
+  float fatmult[100];
   Parton p1; Parton p2;
   float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC, ZR, ZR2,ZR3,Z4,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
   float xrate, xrateB, xrateC;
   float X4,X5,XD,XE,XP;
-
-  TTree *t = new TTree("tree100","100pThat events");
+  float fatratio;
 
   t->Branch("highjet",&highjet);t->Branch("lowjet",&lowjet);
   t->Branch("Xj", &Xj);t->Branch("X1", &X1);t->Branch("X2", &X2); t->Branch("X3", &X3);t->Branch("XA", &XA); t->Branch("XB", &XB);t->Branch("XC", &XC);
@@ -285,12 +327,16 @@ int main(){
   t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
   t->Branch("ZR", &ZR);t->Branch("ZR2", &ZR2);t->Branch("ZR3",&ZR3);t->Branch("Z4",&Z4);
   t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
+  t->Branch("fatratio",&fatratio);
   std::vector<float> jetpT;
   std::vector<float> tempjets;
+  std::vector<float> fatTemp;
+  std::vector<float> fatpT;
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
       continue;
     slowJet. analyze( pythia.event );
+    fatjet.analyze(pythia.event);
     p1.px = pythia.event[5].px();
     p1.py=pythia.event[5].py();
     p1.eta = pythia.event[5].eta();
@@ -300,8 +346,11 @@ int main(){
     p1.id= pythia.event[5].id();
     p2.id= pythia.event[6].id();
     jet_n=0;
+    fatjetcount=0;
     jetpT.resize(slowJet.sizeJet());
     tempjets.resize(slowJet.sizeJet());
+    fatTemp.resize(fatjet.sizeJet());
+    fatpT.resize(fatjet.sizeJet());
     for (int i = 0; i < slowJet.sizeJet(); ++i) {
       jet_pt[ jet_n ] = slowJet.pT(i);
       jet_y[ jet_n ] = slowJet.y(i);
@@ -310,6 +359,11 @@ int main(){
       tempjets[i] = slowJet.pT(i);
       jet_n++;
     }
+    for(int i=0; i<fatjet.sizeJet();++i){ //will I need the phi eta to make parton selections??
+      fatTemp[i]=fatpT[fatjetcount]=fatjet.pT(i);
+      fatmult[fatjetcount++]=fatjet.multiplicity(i);
+    }
+    
     jetpT = tempjets;
     const int nXj = 20;
     const int nfjets=40;
@@ -317,132 +371,215 @@ int main(){
     const float RATEB=2;
     const float RATEC=1;
     float fjets[nfjets];
+    float leadfatjets[nfjets/2];
+    int eventType[nfjets/2];
+    int iAlag=0;
     XjT Xjs[nXj];
-
     Xj=0; QQ1=0;QQ2=0;QQ3=0;QQA=0;QQB=0;QG1=0;QG2=0;QG3=0;QGA=0;QGB=0;GQ1=0;GQ2=0;GQ3=0;GQA=0;GQB=0;GG1=0;GG2=0;GG3=0;GGA=0;GGB=0;xrate=0;XC=0;QQC=0;QGC=0;GQC=0;GGC=0;RAQQ=0; RAQG=0; RAGQ=0; RAGG=0; RBQQ=0;RBQG=0;RBGQ=0;RBGG=0;RCQQ=0;RCQG=0;RCGQ=0;RCGG=0;
 
-    const int ipt1=0;
-    const int ipt2=1;
-    int eventType = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
+     int ipt1=0;
+     int ipt2=1;
+    
     highjet=fjets[0] = jet_pt[0];
     lowjet =fjets[1] = jet_pt[1];
+    leadfatjets[0]=fatpT[0];
+
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jet_pt[i]-randomPositive(0,20);
+       fatpT[i]=fatpT[i]-randomPositive(0,20);
      }
-       jetMax1(jetpT, &fjets[2],0);
+
+       ipt1 = jetMax1(jetpT, &fjets[2],0);
        jetMax1(jetpT, &fjets[3],fjets[2]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+
+       ipt1 = jetMax1(fatpT, &leadfatjets[1],0);
+       fatpT=fatTemp;
+
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jet_pt[i]-randomPositive(10,20);
+       fatpT[i]=fatpT[i]-randomPositive(10,20);
      }
-       jetMax1(jetpT, &fjets[4],0);
+       ipt1=jetMax1(jetpT, &fjets[4],0);
        jetMax1(jetpT, &fjets[5],fjets[4]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[2],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jet_pt[i]-randomPositive(20,20);
+       fatpT[i]=fatpT[i]-randomPositive(20,20);
      }
-       jetMax1(jetpT, &fjets[6],0);
+       ipt1=jetMax1(jetpT, &fjets[6],0);
        jetMax1(jetpT, &fjets[7],fjets[6]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[3],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.2, .05));
+       fatpT[i]=fatpT[i]*(1-randomPositive(.2, .05));
      }
-       jetMax1(jetpT, &fjets[8],0);
+       ipt1=jetMax1(jetpT, &fjets[8],0);
        jetMax1(jetpT, &fjets[9],fjets[8]);
-       jetpT=tempjets;;
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
+       jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[4],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.2, .1));
+       fatpT[i]=fatpT[i]*(1-randomPositive(.2, .1));
      }
-       jetMax1(jetpT, &fjets[10],0);
+       ipt1=jetMax1(jetpT, &fjets[10],0);
        jetMax1(jetpT, &fjets[11],fjets[10]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[5],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]-(mult[i]*RATE);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATE);
      }
-       jetMax1(jetpT, &fjets[12],0);
+       ipt1=jetMax1(jetpT, &fjets[12],0);
        jetMax1(jetpT, &fjets[13],fjets[12]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[6],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.2, .2));
+       fatpT[i]=fatpT[i]*(1-randomPositive(.2, .2));
      }
-       jetMax1(jetpT, &fjets[14],0);
+       ipt1=jetMax1(jetpT, &fjets[14],0);
        jetMax1(jetpT, &fjets[15],fjets[14]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[7],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]-randomPositive(20,30);
+       fatpT[i]=fatpT[i]-randomPositive(20,30);
      }
-       jetMax1(jetpT, &fjets[16],0);
+       ipt1=jetMax1(jetpT, &fjets[16],0);
        jetMax1(jetpT, &fjets[17],fjets[16]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[8],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]-randomPositive(20,40);
+       fatpT[i]=fatpT[i]-randomPositive(20,40);
      }
-       jetMax1(jetpT, &fjets[18],0);
+       ipt1=jetMax1(jetpT, &fjets[18],0);
        jetMax1(jetpT, &fjets[19],fjets[18]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[9],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.2, .2)); //this is a duplicate 
+       fatpT[i]=fatpT[i]*(1-randomPositive(.2, .2));
      }
-       jetMax1(jetpT, &fjets[20],0);
+       ipt1=jetMax1(jetpT, &fjets[20],0);
        jetMax1(jetpT, &fjets[21],fjets[20]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[10],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]-(mult[i]*RATEB);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEB);
      }
-       jetMax1(jetpT, &fjets[22],0);
+       ipt1=jetMax1(jetpT, &fjets[22],0);
        jetMax1(jetpT, &fjets[23],fjets[22]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[11],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]-(mult[i]*RATEC);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEC);
      }
-       jetMax1(jetpT, &fjets[24],0);
+       ipt1=jetMax1(jetpT, &fjets[24],0);
        jetMax1(jetpT, &fjets[25],fjets[24]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[12],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){ // these are for the Z algorithms 
        jetpT[i]=jetpT[i]-(mult[i]*RATEB);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEB);
      }
-       jetMax1(jetpT, &fjets[26],0);
+       ipt1=jetMax1(jetpT, &fjets[26],0);
        jetMax1(jetpT, &fjets[27],fjets[26]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[13],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){ // ditto
        jetpT[i]=jetpT[i]-(mult[i]*RATEB);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEB);
      }
-       jetMax1(jetpT, &fjets[28],0);
+       ipt1=jetMax1(jetpT, &fjets[28],0);
        jetMax1(jetpT, &fjets[29],fjets[28]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[14],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){ //ditto
        jetpT[i]=jetpT[i]-(mult[i]*RATEB);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEB);
      }
-       jetMax1(jetpT, &fjets[30],0);
+       ipt1=jetMax1(jetpT, &fjets[30],0);
        jetMax1(jetpT, &fjets[31],fjets[30]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[15],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){ // ditto
        jetpT[i]=jetpT[i]-(mult[i]*RATEB);
+       fatpT[i]=fatpT[i]-(fatmult[i]*RATEB);
      }
-       jetMax1(jetpT, &fjets[32],0);
+       ipt1=jetMax1(jetpT, &fjets[32],0);
        jetMax1(jetpT, &fjets[33],fjets[32]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[16],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.3,.2));
+       fatpT[i]=fatpT[i]*(1-randomPositive(.3,.2));
      }
-       jetMax1(jetpT, &fjets[34],0);
+       ipt1=jetMax1(jetpT, &fjets[34],0);
        jetMax1(jetpT, &fjets[35],fjets[34]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[17],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(.1,.2));
+       fatpT[i]=fatpT[i]*(1-randomPositive(.1,.2));
      }
-       jetMax1(jetpT, &fjets[36],0);
+       ipt1=jetMax1(jetpT, &fjets[36],0);
        jetMax1(jetpT, &fjets[37],fjets[36]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[18],0);
+       fatpT=fatTemp;
     for(int i=0; i<slowJet.sizeJet();++i){
        jetpT[i]=jetpT[i]*(1-randomPositive(spline(jetpT[i]),.2));
+       fatpT[i]=fatpT[i]*(1-randomPositive(spline(fatpT[i]),.2));
      }
-       jetMax1(jetpT, &fjets[38],0);
+       ipt1=jetMax1(jetpT, &fjets[38],0);
        jetMax1(jetpT, &fjets[39],fjets[38]);
+       eventType[iAlag++] = eType(&p1,&p2,jet_phi[ipt1],jet_y[ipt1]);
        jetpT=tempjets;
+       ipt1 = jetMax1(fatpT, &leadfatjets[19],0);
+       fatpT=fatTemp;
+    std::string fatBranchName;
     for(int i=0; i<nXj; i++){
       Xjs[i].Xj = fixXj(&fjets[2*i+1],&fjets[2*i],fitNUM,fitMAX);
-      Xjs[i].type = eventType;
+      Xjs[i].type = eventType[i];
+      Xjs[i].fat = fjets[2*i] / leadfatjets[i];
       if(Xjs[i].Xj>1){
 	       Xjs[i].Xj = 1/Xjs[i].Xj;
 	       if(Xjs[i].type ==2)
@@ -450,6 +587,8 @@ int main(){
 	       else if(Xjs[i].type==3)
 	           Xjs[i].type=2;
       }
+      fatBranchName = "fat "+std::to_string(i);
+      t->Branch(fatBranchName.c_str(),&Xjs[i].fat); // do not do this just make an array of fat or something
     }
     Xj = Xjs[0].Xj;
     X1 = Xjs[1].Xj;
