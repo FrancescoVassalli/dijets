@@ -268,6 +268,7 @@ int main(int argc, char *argv[]){
     outfilename = "dijet100.root";
   else
     outfilename = "dijet200.root";
+
   TFile *f = new TFile(outfilename.c_str(),writeSet.c_str());
   TTree *t;
   if(writeSet=="UPDATE"){
@@ -317,7 +318,9 @@ int main(int argc, char *argv[]){
   float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC, ZR, ZR2,ZR3,Z4,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
   float xrate, xrateB, xrateC;
   float X4,X5,XD,XE,XP;
-  float fatratio;
+
+  const int nXj = 20;
+  XjT Xjs[nXj];
 
   t->Branch("highjet",&highjet);t->Branch("lowjet",&lowjet);
   t->Branch("Xj", &Xj);t->Branch("X1", &X1);t->Branch("X2", &X2); t->Branch("X3", &X3);t->Branch("XA", &XA); t->Branch("XB", &XB);t->Branch("XC", &XC);
@@ -327,11 +330,16 @@ int main(int argc, char *argv[]){
   t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
   t->Branch("ZR", &ZR);t->Branch("ZR2", &ZR2);t->Branch("ZR3",&ZR3);t->Branch("Z4",&Z4);
   t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
-  t->Branch("fatratio",&fatratio);
   std::vector<float> jetpT;
   std::vector<float> tempjets;
   std::vector<float> fatTemp;
   std::vector<float> fatpT;
+  std::string temp;
+  for(int i=0; i<nXj; i++){
+    temp = "fat"+std::to_string(i);
+    t->Branch(temp.c_str(), &Xjs[i].fat);
+  }
+
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
       continue;
@@ -365,7 +373,6 @@ int main(int argc, char *argv[]){
     }
     
     jetpT = tempjets;
-    const int nXj = 20;
     const int nfjets=40;
     const float RATE = 1.5;
     const float RATEB=2;
@@ -374,7 +381,6 @@ int main(int argc, char *argv[]){
     float leadfatjets[nfjets/2];
     int eventType[nfjets/2];
     int iAlag=0;
-    XjT Xjs[nXj];
     Xj=0; QQ1=0;QQ2=0;QQ3=0;QQA=0;QQB=0;QG1=0;QG2=0;QG3=0;QGA=0;QGB=0;GQ1=0;GQ2=0;GQ3=0;GQA=0;GQB=0;GG1=0;GG2=0;GG3=0;GGA=0;GGB=0;xrate=0;XC=0;QQC=0;QGC=0;GQC=0;GGC=0;RAQQ=0; RAQG=0; RAGQ=0; RAGG=0; RBQQ=0;RBQG=0;RBGQ=0;RBGG=0;RCQQ=0;RCQG=0;RCGQ=0;RCGG=0;
 
      int ipt1=0;
@@ -587,8 +593,6 @@ int main(int argc, char *argv[]){
 	       else if(Xjs[i].type==3)
 	           Xjs[i].type=2;
       }
-      fatBranchName = "fat "+std::to_string(i);
-      t->Branch(fatBranchName.c_str(),&Xjs[i].fat); // do not do this just make an array of fat or something
     }
     Xj = Xjs[0].Xj;
     X1 = Xjs[1].Xj;
@@ -610,54 +614,52 @@ int main(int argc, char *argv[]){
     XE = Xjs[18].Xj;
     XP = Xjs[19].Xj;
     switch(Xjs[1].type){
-      case 1:
-	QQ1 = Xjs[1].Xj;
-  QQ2=Xjs[2].Xj;
-	QQ3=Xjs[3].Xj;
-	QQA=Xjs[4].Xj;
-	QQB=Xjs[5].Xj;
-	QQC=Xjs[10].Xj;
-	RAQQ = xrate;
-	RBQQ = Xjs[11].Xj;
-	RCQQ = Xjs[12].Xj;
-	break;
-      case 2:
-        QG1 = Xjs[1].Xj;
-	QG2=Xjs[2].Xj;
-	QG3=Xjs[3].Xj;
-	QGA=Xjs[4].Xj;
-	QGB=Xjs[5].Xj;
-	QGC=Xjs[10].Xj;
-	RAQG = xrate;
-	RBQG = Xjs[11].Xj;
-	RCQG = Xjs[12].Xj;
-	break;
-      case 3:
-        GQ1 = Xjs[1].Xj;
-	GQ2=Xjs[2].Xj;
-	GQ3=Xjs[3].Xj;
-	GQA=Xjs[4].Xj;
-	GQB=Xjs[5].Xj;
-	GQC=Xjs[10].Xj;
-	RAGQ = xrate;
-	RBGQ = Xjs[11].Xj;
-	RCGQ = Xjs[12].Xj;
-	break;
-      case 4:
-        GG1 = Xjs[1].Xj;
-	GG2=Xjs[2].Xj;
-	GG3=Xjs[3].Xj;
-	GGA=Xjs[4].Xj;
-	GGB=Xjs[5].Xj;
-	GGC=Xjs[10].Xj;
-	RAGG = xrate;
-	RBGG = Xjs[11].Xj;
-	RCGG = Xjs[12].Xj;
-	break;
-      }
-
-      t->Fill();
-
+    case 1:
+	     QQ1 = Xjs[1].Xj;
+       QQ2=Xjs[2].Xj;
+	     QQ3=Xjs[3].Xj;
+	     QQA=Xjs[4].Xj;
+	     QQB=Xjs[5].Xj;
+	     QQC=Xjs[10].Xj;
+	     RAQQ = xrate;
+	     RBQQ = Xjs[11].Xj;
+	     RCQQ = Xjs[12].Xj;
+	     break;
+    case 2:
+       QG1 = Xjs[1].Xj;
+	     QG2=Xjs[2].Xj;
+	     QG3=Xjs[3].Xj;
+	     QGA=Xjs[4].Xj;
+	     QGB=Xjs[5].Xj;
+	     QGC=Xjs[10].Xj;
+	     RAQG = xrate;
+	     RBQG = Xjs[11].Xj;
+	     RCQG = Xjs[12].Xj;
+	     break;
+    case 3:
+       GQ1 = Xjs[1].Xj;
+	     GQ2=Xjs[2].Xj;
+	     GQ3=Xjs[3].Xj;
+	     GQA=Xjs[4].Xj;
+	     GQB=Xjs[5].Xj;
+	     GQC=Xjs[10].Xj;
+	     RAGQ = xrate;
+	     RBGQ = Xjs[11].Xj;
+	     RCGQ = Xjs[12].Xj;
+	     break;
+    case 4:
+       GG1 = Xjs[1].Xj;
+	     GG2=Xjs[2].Xj;
+	     GG3=Xjs[3].Xj;
+	     GGA=Xjs[4].Xj;
+	     GGB=Xjs[5].Xj;
+	     GGC=Xjs[10].Xj;
+	     RAGG = xrate;
+	     RBGG = Xjs[11].Xj;
+	     RCGG = Xjs[12].Xj;
+	     break;
+    }
+    t->Fill();
   }
   t->Write();
   f->Write();
