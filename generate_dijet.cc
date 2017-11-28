@@ -240,17 +240,23 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
 arg#0 = run command
 arg#1 = run state low for lowpT high for highpT
 arg#2 = run state o for over write a for append 
-arg#3 = number of events 
+arg#3 = number of outputs
 can be run without arguments 
 **/
 int main(int argc, char *argv[]){ 
-  int nEvent =2000;
+  int nEvent =1000;
   bool lowpT =true;
   int fitNUM, fitMAX;
+  int Noutput=2;
   std::string outfilebegin;
   std::string outfileend = ".root";
   std::string writeSet = "RECREATE";
   int fileN =1;
+  if(argc==4){
+    using namespace std;
+    string arg3(argv[3]);
+    Noutput= stoi(arg3);
+  }
   if(argc==2||argc==3){
     std::string arg1(argv[1]);
     if(arg1=="low")
@@ -295,9 +301,14 @@ int main(int argc, char *argv[]){
       }
     }
   }
+  TFile *f;
+  TTree *t;
+  while(Noutput>0){
   std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
-  TFile *f = new TFile(outfilename.c_str(),writeSet.c_str());
-  TTree *t=new TTree("tree100","100pThat events");
+  Noutput--;
+  fileN++;
+  f = new TFile(outfilename.c_str(),writeSet.c_str());
+  t=new TTree("tree100","100pThat events");
   if(lowpT){
     fitNUM =100;
     fitMAX = 126;
@@ -317,7 +328,7 @@ int main(int argc, char *argv[]){
   pythia.readString("Beams:eCM = 2760.");
   pythia.readString("HardQCD:all = on");
   if(lowpT)
-    pythia.readString("PhaseSpace:pTHatMin = 75.");
+    pythia.readString("PhaseSpace:pTHatMin = 80.");
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
@@ -329,12 +340,12 @@ int main(int argc, char *argv[]){
   int fatjetcount;
   float highjet;
   float lowjet;
-  float jet_pt[100]; // do I need fatjets?
+  float jet_pt[50]; // do I need fatjets?
 
-  float jet_y[100];
-  float jet_phi[100];
-  float mult[100];
-  float fatmult[100];
+  float jet_y[50];
+  float jet_phi[50];
+  float mult[50];
+  float fatmult[50];
   Parton p1; Parton p2;
   float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC, ZR, ZR2,ZR3,Z4,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
   float xrate, xrateB, xrateC;
@@ -680,11 +691,18 @@ int main(int argc, char *argv[]){
 	     RCGG = Xjs[12].Xj;
 	     break;
     }
+
     t->Fill();
   }
   t->Write();
   f->Write();
   f->Close();
+  delete f;
+  delete t;
+  f=NULL;
+  t=NULL;
   //cout<<mycount<<std::endl; //for debug
-  return 0;
+  }
+return 0;
 }
+ 
