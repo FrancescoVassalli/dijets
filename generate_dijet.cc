@@ -14,10 +14,6 @@ C= *(1-GAUS(.2,.2))
  These algorithms do not select for parton (yet) and are
 4= -GAUS(20, 30)
 5= - GAUS(20,40)
-ZR = -GAUS(10,10) - rateB
-ZR2 = -GAUS(20,20) - rateB
-ZR3 = xGAUS(.2,.3)-rateB
-Z4 = xGAUS(.2,.1)-GAUS(20,30);
 D = *(1-GAUS(.3,.2))
 E= *(1-GAUS(.1,.2))
 P = Interpolation of decreasing fractional energy loss wrt pT
@@ -53,12 +49,12 @@ struct Parton{
 struct XjT{
   float Xj;
   float fat;
-  int type;
+  short type;
 };
 
 float randomPositive(double mean, double sig){
-  TRandom3 *tr3= new TRandom3(0);
-  float r = tr3->Gaus(mean, sig);
+  TRandom3 tr3= TRandom3(0);
+  float r = tr3.Gaus(mean, sig);
   if(r>0){
     return r;
   }
@@ -140,7 +136,7 @@ bool isQuark(Parton p1){
   return false;
 }
 
-int eType(Parton *p1,Parton *p2, float phi, float y){
+short eType(Parton *p1,Parton *p2, float phi, float y){
   setLead(p1,p2,phi,y);
   if(isQuark(*p1)&&isQuark(*p2))return 1;
   if(p2->id==21&&p1->id==21)
@@ -219,7 +215,7 @@ void addJet2(float *jet1, float phi1, float *jet2, float phi2, float jet3, float
 }
 
 void printP(vector<int> parts, vector<int> particles){
-  for(unsigned int i=0; i<parts.size(); i++){
+  for(unsigned short i=0; i<parts.size(); i++){
     cout<<particles[parts[i]]<<endl;
   }
 }
@@ -236,89 +232,10 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
   *phi = jet_phi[index];
   *y = jet_y[index];
 }
-/**
-arg#0 = run command
-arg#1 = run state low for lowpT high for highpT
-arg#2 = run state o for over write a for append 
-arg#3 = number of outputs
-can be run without arguments 
-**/
-int main(int argc, char *argv[]){ 
-  int nEvent =1000;
-  bool lowpT =true;
-  int fitNUM, fitMAX;
-  int Noutput=2;
-  std::string outfilebegin;
-  std::string outfileend = ".root";
-  std::string writeSet = "RECREATE";
-  int fileN =1;
-  if(argc==4){
-    using namespace std;
-    string arg3(argv[3]);
-    Noutput= stoi(arg3);
-  }
-  if(argc==2||argc==3){
-    std::string arg1(argv[1]);
-    if(arg1=="low")
-      lowpT=true;
-    else if(arg1=="high")
-      lowpT=false;
-    else
-      return 8;
-  }
-  if(lowpT)
-    outfilebegin = "dijet100";
-  else
-    outfilebegin = "dijet200";
 
-  if(argc<3||(argc==3&&argv[2][0]=='o')){
-    bool deleting=true;
-    using namespace std;
-    string filename;
-    while(deleting){
-      filename=outfilebegin+to_string(fileN)+outfileend;
-      if(remove(filename.c_str())!=0){
-        deleting=false;
-      }
-      else{
-       fileN++; 
-      }
-    }
-    fileN=1;
-  }
-  else{
-    bool running=true;
-    using namespace std;
-    string filename;
-    while(running){
-      filename=outfilebegin+to_string(fileN)+outfileend;
-      ifstream infile(filename);
-      if(infile.good()){
-        fileN++;
-      }
-      else{
-        running=false;
-      }
-    }
-  }
-  TFile *f;
-  TTree *t;
-  while(Noutput>0){
-  std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
-  Noutput--;
-  fileN++;
-  f = new TFile(outfilename.c_str(),writeSet.c_str());
-  t=new TTree("tree100","100pThat events");
-  if(lowpT){
-    fitNUM =100;
-    fitMAX = 126;
-  }
-  else{
-    fitNUM=200;
-    fitMAX=3000;
-  }
-  //Interpolation values
-  
+void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
+  TFile* f = new TFile(filename.c_str(),"RECREATE");
+  TTree* t=new TTree("tree100","100pThat events");
   std::vector<double> interE = {50,70,90,100,110,126,140,170,200}; 
   std::vector<double> interM={.5,.43,.35,.3,.25,.2,.15,.1,.05};
   tk::spline spline;
@@ -336,8 +253,8 @@ int main(int argc, char *argv[]){
   SlowJet fatjet(-1, 0.8, 10,4,2,1);
   SlowJet slowJet( -1, 0.4, 10, 4, 2, 1);
 
-  int jet_n;
-  int fatjetcount;
+  short jet_n;
+  short fatjetcount;
   float highjet;
   float lowjet;
   float jet_pt[50]; // do I need fatjets?
@@ -347,7 +264,7 @@ int main(int argc, char *argv[]){
   float mult[50];
   float fatmult[50];
   Parton p1; Parton p2;
-  float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC, ZR, ZR2,ZR3,Z4,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
+  float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
   float xrate, xrateB, xrateC;
   float X4,X5,XD,XE,XP;
 
@@ -360,9 +277,9 @@ int main(int argc, char *argv[]){
   t->Branch("QQ1",&QQ1);t->Branch("QQ2",&QQ2);t->Branch("QQ3",&QQ3);t->Branch("QQA",&QQA);t->Branch("QQB", &QQB);t->Branch("QQC",&QQC);t->Branch("QG1",&QG1);t->Branch("QG2",&QG2);t->Branch("QG3",&QG3);t->Branch("QGA",&QGA);t->Branch("QGB",&QGB);t->Branch("QGC",&QGC);t->Branch("GQ1",&GQ1);t->Branch("GQ2",&GQ2);t->Branch("GQ3",&GQ3);t->Branch("GQA",&GQA);t->Branch("GQB",&GQB);t->Branch("GQC",&GQC);t->Branch("GG1",&GG1);t->Branch("GG2",&GG2);t->Branch("GG3",&GG3);t->Branch("GGA",&GGA);t->Branch("GGB",&GGB);t->Branch("GGC", &GGC);
   t->Branch("XD",&XD);t->Branch("XE", &XE);t->Branch("XP",&XP);
   t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
-  t->Branch("ZR", &ZR);t->Branch("ZR2", &ZR2);t->Branch("ZR3",&ZR3);t->Branch("Z4",&Z4);
   t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
-  std::vector<float> jetpT;
+ 
+ std::vector<float> jetpT;
   std::vector<float> tempjets;
   std::vector<float> fatTemp;
   std::vector<float> fatpT;
@@ -416,7 +333,6 @@ int main(int argc, char *argv[]){
     Xj=0; QQ1=0;QQ2=0;QQ3=0;QQA=0;QQB=0;QG1=0;QG2=0;QG3=0;QGA=0;QGB=0;GQ1=0;GQ2=0;GQ3=0;GQA=0;GQB=0;GG1=0;GG2=0;GG3=0;GGA=0;GGB=0;xrate=0;XC=0;QQC=0;QGC=0;GQC=0;GGC=0;RAQQ=0; RAQG=0; RAGQ=0; RAGG=0; RBQQ=0;RBQG=0;RBGQ=0;RBGG=0;RCQQ=0;RCQG=0;RCGQ=0;RCGG=0;
 
      int ipt1=0;
-     int ipt2=1;
     
     highjet=fjets[0] = jet_pt[0];
     lowjet =fjets[1] = jet_pt[1];
@@ -619,11 +535,11 @@ int main(int argc, char *argv[]){
       Xjs[i].type = eventType[i];
       Xjs[i].fat = fjets[2*i] / leadfatjets[i];
       if(Xjs[i].Xj>1){
-	       Xjs[i].Xj = 1/Xjs[i].Xj;
-	       if(Xjs[i].type ==2)
-	           Xjs[i].type=3;
-	       else if(Xjs[i].type==3)
-	           Xjs[i].type=2;
+         Xjs[i].Xj = 1/Xjs[i].Xj;
+         if(Xjs[i].type ==2)
+             Xjs[i].type=3;
+         else if(Xjs[i].type==3)
+             Xjs[i].type=2;
       }
     }
     Xj = Xjs[0].Xj;
@@ -638,58 +554,54 @@ int main(int argc, char *argv[]){
     X5 = Xjs[9].Xj;
     xrateB = Xjs[11].Xj;
     xrateC = Xjs[12].Xj;
-    ZR = Xjs[13].Xj;
-    ZR2 = Xjs[14].Xj;
-    ZR3 = Xjs[15].Xj;
-    Z4 = Xjs[16].Xj;
     XD = Xjs[17].Xj;
     XE = Xjs[18].Xj;
     XP = Xjs[19].Xj;
     switch(Xjs[1].type){
     case 1:
-	     QQ1 = Xjs[1].Xj;
+       QQ1 = Xjs[1].Xj;
        QQ2=Xjs[2].Xj;
-	     QQ3=Xjs[3].Xj;
-	     QQA=Xjs[4].Xj;
-	     QQB=Xjs[5].Xj;
-	     QQC=Xjs[10].Xj;
-	     RAQQ = xrate;
-	     RBQQ = Xjs[11].Xj;
-	     RCQQ = Xjs[12].Xj;
-	     break;
+       QQ3=Xjs[3].Xj;
+       QQA=Xjs[4].Xj;
+       QQB=Xjs[5].Xj;
+       QQC=Xjs[10].Xj;
+       RAQQ = xrate;
+       RBQQ = Xjs[11].Xj;
+       RCQQ = Xjs[12].Xj;
+       break;
     case 2:
        QG1 = Xjs[1].Xj;
-	     QG2=Xjs[2].Xj;
-	     QG3=Xjs[3].Xj;
-	     QGA=Xjs[4].Xj;
-	     QGB=Xjs[5].Xj;
-	     QGC=Xjs[10].Xj;
-	     RAQG = xrate;
-	     RBQG = Xjs[11].Xj;
-	     RCQG = Xjs[12].Xj;
-	     break;
+       QG2=Xjs[2].Xj;
+       QG3=Xjs[3].Xj;
+       QGA=Xjs[4].Xj;
+       QGB=Xjs[5].Xj;
+       QGC=Xjs[10].Xj;
+       RAQG = xrate;
+       RBQG = Xjs[11].Xj;
+       RCQG = Xjs[12].Xj;
+       break;
     case 3:
        GQ1 = Xjs[1].Xj;
-	     GQ2=Xjs[2].Xj;
-	     GQ3=Xjs[3].Xj;
-	     GQA=Xjs[4].Xj;
-	     GQB=Xjs[5].Xj;
-	     GQC=Xjs[10].Xj;
-	     RAGQ = xrate;
-	     RBGQ = Xjs[11].Xj;
-	     RCGQ = Xjs[12].Xj;
-	     break;
+       GQ2=Xjs[2].Xj;
+       GQ3=Xjs[3].Xj;
+       GQA=Xjs[4].Xj;
+       GQB=Xjs[5].Xj;
+       GQC=Xjs[10].Xj;
+       RAGQ = xrate;
+       RBGQ = Xjs[11].Xj;
+       RCGQ = Xjs[12].Xj;
+       break;
     case 4:
        GG1 = Xjs[1].Xj;
-	     GG2=Xjs[2].Xj;
-	     GG3=Xjs[3].Xj;
-	     GGA=Xjs[4].Xj;
-	     GGB=Xjs[5].Xj;
-	     GGC=Xjs[10].Xj;
-	     RAGG = xrate;
-	     RBGG = Xjs[11].Xj;
-	     RCGG = Xjs[12].Xj;
-	     break;
+       GG2=Xjs[2].Xj;
+       GG3=Xjs[3].Xj;
+       GGA=Xjs[4].Xj;
+       GGB=Xjs[5].Xj;
+       GGC=Xjs[10].Xj;
+       RAGG = xrate;
+       RBGG = Xjs[11].Xj;
+       RCGG = Xjs[12].Xj;
+       break;
     }
 
     t->Fill();
@@ -697,12 +609,87 @@ int main(int argc, char *argv[]){
   t->Write();
   f->Write();
   f->Close();
-  delete f;
-  delete t;
-  f=NULL;
-  t=NULL;
-  //cout<<mycount<<std::endl; //for debug
+
+}
+/**
+arg#0 = run command
+arg#1 = run state low for lowpT high for highpT
+arg#2 = run state o for over write a for append 
+arg#3 = number of outputs
+can be run without arguments 
+**/
+int main(int argc, char *argv[]){ 
+  int nEvent =3000;
+  bool lowpT =true;
+  int fitNUM, fitMAX;
+  int Noutput=2;
+  std::string outfilebegin;
+  std::string outfileend = ".root";
+  std::string writeSet = "RECREATE";
+  short fileN =1;
+  if(argc==4){
+    using namespace std;
+    string arg3(argv[3]);
+    Noutput= stoi(arg3);
   }
-return 0;
+  if(argc==2||argc==3){
+    std::string arg1(argv[1]);
+    if(arg1=="low")
+      lowpT=true;
+    else if(arg1=="high")
+      lowpT=false;
+    else
+      return 8;
+  }
+  if(lowpT)
+    outfilebegin = "dijet100";
+  else
+    outfilebegin = "dijet200";
+
+  if(argc<3||(argc==3&&argv[2][0]=='o')){
+    bool deleting=true;
+    using namespace std;
+    string filename;
+    while(deleting){
+      filename=outfilebegin+to_string(fileN)+outfileend;
+      if(remove(filename.c_str())!=0){
+        deleting=false;
+      }
+      else{
+       fileN++; 
+      }
+    }
+    fileN=1;
+  }
+  else{
+    bool running=true;
+    using namespace std;
+    string filename;
+    while(running){
+      filename=outfilebegin+to_string(fileN)+outfileend;
+      ifstream infile(filename);
+      if(infile.good()){
+        fileN++;
+      }
+      else{
+        running=false;
+      }
+    }
+  }
+  while(Noutput>0){
+    std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
+    Noutput--;
+    fileN++;
+    if(lowpT){
+      fitNUM =100;
+      fitMAX = 126;
+    }
+    else{
+      fitNUM=200;
+      fitMAX=3000;
+    }
+    makedata(outfilename,fitNUM,fitMAX,lowpT,nEvent);
+  }
+  return 0;
 }
  
