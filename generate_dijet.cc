@@ -53,8 +53,7 @@ struct XjT{
 };
 
 float randomPositive(double mean, double sig){
-  TRandom3 tr3= TRandom3(0);
-  float r = tr3.Gaus(mean, sig);
+  float r = gRandom->Gaus(mean, sig);
   if(r>0){
     return r;
   }
@@ -619,7 +618,7 @@ arg#3 = number of outputs
 can be run without arguments 
 **/
 int main(int argc, char *argv[]){ 
-  int nEvent =3000;
+  int nEvent =2000;
   bool lowpT =true;
   int fitNUM, fitMAX;
   int Noutput=2;
@@ -676,11 +675,7 @@ int main(int argc, char *argv[]){
       }
     }
   }
-  while(Noutput>0){
-    std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
-    Noutput--;
-    fileN++;
-    if(lowpT){
+  if(lowpT){
       fitNUM =100;
       fitMAX = 126;
     }
@@ -688,6 +683,10 @@ int main(int argc, char *argv[]){
       fitNUM=200;
       fitMAX=3000;
     }
+  while(Noutput>0){
+    std::string outfilename = outfilebegin+std::to_string(fileN)+outfileend;
+    Noutput--;
+    fileN++;
     makedata(outfilename,fitNUM,fitMAX,lowpT,nEvent);
   }
   return 0;
