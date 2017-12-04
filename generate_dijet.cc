@@ -36,10 +36,9 @@ using namespace Pythia8;
 
 int mycount=0;
 Double_t E= 2.71828182845904523536;
-struct MJet{
+struct JetSruct{
   float pT, phi, y;
-  int evntN, jetN;
-  vector<int> partN;
+  int mult;
 };
 
 struct Parton{
@@ -197,6 +196,10 @@ void jetMax2(int count, int *index, float *jet, float jet_a[], float jet_max, in
   }
 }
 
+std::vector<float> makeFatRatio (std::vector<float> jetpT, std::vector<float> fatpT){
+
+}
+
 void addJet(float *jet1, float *phi1, float jet2, float phi2){
   float x = (*jet1)* TMath::Cos((*phi1)) + jet2 * TMath::Cos(phi2);
   float y = (*jet1)*TMath::Sin((*phi1)) + jet2 * TMath::Sin(phi2);
@@ -257,12 +260,9 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   short fatjetcount;
   float highjet;
   float lowjet;
-  float jet_pt[50]; // do I need fatjets?
-
-  float jet_y[50];
-  float jet_phi[50];
-  float mult[50];
-  float fatmult[50];
+  std::vector<JetSruct> skinny;
+  std::vector<JetSruct> fatty;
+  std::vector<float> fatratio;
   Parton p1; Parton p2;
   float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
   float xrate, xrateB, xrateC;
@@ -278,16 +278,20 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   t->Branch("XD",&XD);t->Branch("XE", &XE);t->Branch("XP",&XP);
   t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
   t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
- 
- std::vector<float> jetpT;
-  std::vector<float> tempjets;
-  std::vector<float> fatTemp;
-  std::vector<float> fatpT;
+  t->Branch("fatratio", &fatratio[0])
+
+  std::vector<JetSruct> skinnyTemp;
+  std::vector<JetSruct> fattyTemp;
   std::string temp;
-  for(int i=0; i<nXj; i++){
-    temp = "fat"+std::to_string(i);
-    t->Branch(temp.c_str(), &Xjs[i].fat);
-  }
+  const int nfjets=40;
+  const float RATE = 1.5;
+  const float RATEB=2;
+  const float RATEC=1;
+  float fjets[nfjets];
+  float leadfatjets[nfjets/2];
+  int eventType[nfjets/2];
+  int iAlag=0;
+  int ipt1=0;
 
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
@@ -304,36 +308,31 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     p2.id= pythia.event[6].id();
     jet_n=0;
     fatjetcount=0;
-    jetpT.resize(slowJet.sizeJet());
-    tempjets.resize(slowJet.sizeJet());
+    skinny.resize(slowJet.sizeJet());
+    skinnyTemp.resize(slowJet.sizeJet());
+    fatty.resize(fatjet.sizeJet());
     fatTemp.resize(fatjet.sizeJet());
-    fatpT.resize(fatjet.sizeJet());
+    fatratio.resize(fatjet.sizeJet());
     for (int i = 0; i < slowJet.sizeJet(); ++i) {
-      jet_pt[ jet_n ] = slowJet.pT(i);
-      jet_y[ jet_n ] = slowJet.y(i);
-      jet_phi[ jet_n ] = slowJet.phi(i);
-      mult[jet_n] = slowJet.multiplicity(i);
-      tempjets[i] = slowJet.pT(i);
+      skinny[jet_n].pT = slowJet.pT(i);
+      skinny[jet_n].y = slowJet.y(i);
+      skinny[jet_n].phi = slowJet.phi(i);
+      skinny[jet_n].mult = slowJet.multiplicity(i);
       jet_n++;
     }
+    skinnyTemp=skinny;
     for(int i=0; i<fatjet.sizeJet();++i){ //will I need the phi eta to make parton selections??
-      fatTemp[i]=fatpT[fatjetcount]=fatjet.pT(i);
-      fatmult[fatjetcount++]=fatjet.multiplicity(i);
+      fatty[fatjetcount].pT=fatjet.pT(i);
+      fatty[fatjetcount].y = fatjet.y(i);
+      fatty[fatjetcount].phi = fatjet.phi(i);
+      fatty[fatjetcount++].mult=fatjet.multiplicity(i);
     }
-    
-    jetpT = tempjets;
-    const int nfjets=40;
-    const float RATE = 1.5;
-    const float RATEB=2;
-    const float RATEC=1;
-    float fjets[nfjets];
-    float leadfatjets[nfjets/2];
-    int eventType[nfjets/2];
-    int iAlag=0;
+    fattyTemp=fatty;
+   
     Xj=0; QQ1=0;QQ2=0;QQ3=0;QQA=0;QQB=0;QG1=0;QG2=0;QG3=0;QGA=0;QGB=0;GQ1=0;GQ2=0;GQ3=0;GQA=0;GQB=0;GG1=0;GG2=0;GG3=0;GGA=0;GGB=0;xrate=0;XC=0;QQC=0;QGC=0;GQC=0;GGC=0;RAQQ=0; RAQG=0; RAGQ=0; RAGG=0; RBQQ=0;RBQG=0;RBGQ=0;RBGG=0;RCQQ=0;RCQG=0;RCGQ=0;RCGG=0;
-
-     int ipt1=0;
     
+    iAlag=0;
+    ipt1=0;
     highjet=fjets[0] = jet_pt[0];
     lowjet =fjets[1] = jet_pt[1];
     leadfatjets[0]=fatpT[0];
