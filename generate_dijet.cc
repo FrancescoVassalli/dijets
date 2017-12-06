@@ -713,7 +713,7 @@ int main(int argc, char *argv[]){
   std::string outfilebegin ="dijet";
   std::string outfileend = ".root";
   std::string writeSet = "RECREATE";
-  short fileN =2;
+  short fileN =1;
   if(argc>1){
     std::string arg1(argv[1]);
     if(arg1=="low")
