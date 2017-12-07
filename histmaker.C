@@ -4,7 +4,7 @@
 #include "TProfile.h"
 #include <sstream>
 #include <iostream>
-TTree *dijet_tree;
+#include <fstream>
 //ajust by bin width
 
 /*
@@ -40,28 +40,37 @@ double myChi(TH1F *h, TH1F *h2, int NBINs, int nFree){
 	return sum/nFree;
 }
 
-void histmaker()
+void histmaker(int fileN)
 {
   TCanvas *tc = new TCanvas();
   bool lowpT = true;
   const int DFreedom =10;
-  std::string file;
+  std::string filebegin = "dijet";
+  std::string fileend = "001.root";
   float stateMax;
-  TFile *fin;
+  std::string file;
   if(lowpT){
-    fin= new TFile("dijet100.root");
-    file= " 100.pdf";
     stateMax=3.5;
+    file = " 100.pdf";
   }
   else{
-    fin= new TFile("dijet200.root");
-    file= " 200.pdf";
     stateMax = 4.5;
+    file = " 200.pdf";
   }
-  dijet_tree = (TTree*) fin->Get("tree100");
+  TChain *dijet_tree = new TChain("tree100");
+  std::string filename = filebegin+std::to_string(fileN)+fileend;
+  ifstream fs(filename);
+  while(fs.good()){
+    dijet_tree->Add(filename.c_str());
+    fs.close();
+    fs.clear();
+    fs.open(filename);
+    fileN++;
+    filename = filebegin+std::to_string(fileN)+fileend;
+  }
   TLegend *tl=new TLegend(.4,.7,.6,.9);
-  const int HISTN = 55; ///         0   1      2       3    4   5    6       7    8      9    10    11    12    13    14    15    16  17      18    19     20    21  22  23    24  25    26   27     28    29   30      31     32    33       34    35     36    37     38      39    40     41       42     43    44    45    46   47    48   49  50   51    52        53		54
-  std::string histnames[HISTN] = {"Xj","QQ1","QQ2","QQ3","QQA","QQB","QG1","QG2","QG3","QGA","QGB","GQ1","GQ2","GQ3","GQA","GQB","GG1","GG2","GG3","GGA","GGB","X1","X2","X3","XA","XB","XC","QQC", "QGC","GQC","GGC","RAQQ","RAQG","RAGQ","RAGG","RBQQ","RBQG","RBGQ","RBGG","RCQQ","RCQG","RCGQ","RCGG","xrate","ZR", "ZR2","ZR3","Z4","XD","XE","X4","X5","xrateB","xrateC", "XP"};
+  const int HISTN = 55; ///         0   1      2       3    4   5    6       7    8      9    10    11    12    13    14    15    16  17      18    19     20    21  22  23    24  25    26   27     28    29   30      31     32    33       34    35     36    37     38      39    40     41       42     43     44          45     46    47   48   49  50   51    52        53		54
+  std::string histnames[HISTN] = {"Xj","QQ1","QQ2","QQ3","QQA","QQB","QG1","QG2","QG3","QGA","QGB","GQ1","GQ2","GQ3","GQA","GQB","GG1","GG2","GG3","GGA","GGB","X1","X2","X3","XA","XB","XC","QQC", "QGC","GQC","GGC","RAQQ","RAQG","RAGQ","RAGG","RBQQ","RBQG","RBGQ","RBGG","RCQQ","RCQG","RCGQ","RCGG","xrate","quadFat", "linFat","ZR3","Z4","XD","XE","X4","X5","xrateB","xrateC", "XP"};
   std::string treeRoute;
   std::string Qtemp;
   TH1F *h[HISTN] = {NULL};
@@ -353,7 +362,20 @@ void histmaker()
   h[54]->SetMaximum(stateMax);
   h[54]->Draw();
   tl->AddEntry(h[54],"Inerpolation", "l");
-  temp = "Inerpolation"+file;
+  temp = "Interpolation"+file;
+  tc->Print(temp.c_str());
+  tl->Clear("D");
+
+  h[0]->Draw("hist");
+  h[44]->Draw("same hist");
+  h[45]->Draw("same hist");
+  tl->AddEntry(h[0], "control","l");
+  tl->AddEntry(h[44], "quadFat","l");
+  tl->AddEntry(h[45], "linFat","l");
+  h[44]->SetLineColor(kGreen+2);
+  h[45]->SetLineColor(kRed);
+  temp = "fatrate"+file;
+  tl->Draw();
   tc->Print(temp.c_str());
   tl->Clear("D");
 
