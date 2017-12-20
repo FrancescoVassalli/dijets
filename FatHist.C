@@ -44,8 +44,8 @@ void FatHist(int fileN){
   	fathist->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathist->SetYTitle("Count");
   	dijet_tree->Draw("linFat>>fathist","","goff");
-  	fathist->Scale(1/fathist->Integral());
   	fathist->Sumw2();
+  	fathist->Scale(1/fathist->Integral());
   	fathist->SetMarkerStyle(20);
   	fathist->SetMarkerColor(kRed);
   	fathist->SetLineColor(kRed);
@@ -54,8 +54,8 @@ void FatHist(int fileN){
   	fathist2->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathist2->SetYTitle("Count");
   	dijet_tree->Draw("quadFat>>fathist2","","goff");
-  	fathist2->Scale(1/fathist2->Integral());
   	fathist2->Sumw2();
+  	fathist2->Scale(1/fathist2->Integral());
   	fathist2->SetMarkerStyle(20);
   	fathist2->SetMarkerColor(kOrange);
   	fathist2->SetLineColor(kOrange);
@@ -64,8 +64,8 @@ void FatHist(int fileN){
   	fathistc->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathistc->SetYTitle("Count");
   	dijet_tree->Draw("Xj>>fathistc","","goff");
-  	fathistc->Scale(1/fathistc->Integral());
   	fathistc->Sumw2();
+  	fathistc->Scale(1/fathistc->Integral());
   	fathistc->SetMarkerStyle(20);
 
   	TLegend *tl = new TLegend(.4,.7,.6,.9);
