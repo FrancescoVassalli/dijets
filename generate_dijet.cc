@@ -364,7 +364,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
   t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
   t->Branch("fatratio", &fatratio[0]);
-  t->Branch("quadFat", &Xjs[13]);t->Branch("linFat", &Xjs[14]);
+  t->Branch("quadFat", &Xjs[13].Xj);
+  t->Branch("linFat", &Xjs[14].Xj);
 
   std::vector<JetSruct> skinnyTemp;
   std::vector<JetSruct> fattyTemp;
@@ -706,7 +707,7 @@ arg#3 = file prefix
 can be run without arguments 
 **/
 int main(int argc, char *argv[]){ 
-  int nEvent =1000;
+  int nEvent =600;
   bool lowpT =true;
   int fitNUM, fitMAX;
   int Noutput=1;
