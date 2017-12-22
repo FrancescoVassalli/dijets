@@ -455,7 +455,7 @@ arg#3 = file prefix
 can be run without arguments 
 **/
 int main(int argc, char *argv[]){ 
-  int nEvent =1000;
+  int nEvent =10000;
   bool lowpT =true;
   int fitNUM, fitMAX;
   int Noutput=1;
