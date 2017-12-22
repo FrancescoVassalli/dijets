@@ -20,7 +20,7 @@ void FatHist(int fileN){
   	std::string outfile;
   	if(lowpT){
    		stateMax=3.5;
-    	outfile = " 100.pdf";
+    	outfile = " 101.pdf";
   	}
   	else{
     	stateMax = 4.5;
@@ -43,8 +43,8 @@ void FatHist(int fileN){
   	TH1F *fathist = new TH1F("fathist","Xj fat based quench", Nbins, bins);
   	fathist->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathist->SetYTitle("Count");
-  	dijet_tree->Draw("linFat>>fathist","","goff");
-  	fathist->Sumw2();
+  	dijet_tree->Draw("X1>>fathist","","goff");
+  	fathist->Sumw2(kTRUE);
   	fathist->Scale(1/fathist->Integral());
   	fathist->SetMarkerStyle(20);
   	fathist->SetMarkerColor(kRed);
@@ -53,8 +53,8 @@ void FatHist(int fileN){
   	TH1F *fathist2 = new TH1F("fathist2","Xj fat based quench", Nbins, bins);
   	fathist2->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathist2->SetYTitle("Count");
-  	dijet_tree->Draw("quadFat>>fathist2","","goff");
-  	fathist2->Sumw2();
+  	dijet_tree->Draw("X2>>fathist2","","goff");
+  	fathist2->Sumw2(kTRUE);
   	fathist2->Scale(1/fathist2->Integral());
   	fathist2->SetMarkerStyle(20);
   	fathist2->SetMarkerColor(kOrange);
@@ -64,7 +64,7 @@ void FatHist(int fileN){
   	fathistc->SetXTitle("Xj ratio (Pt2/Pt1)");
   	fathistc->SetYTitle("Count");
   	dijet_tree->Draw("Xj>>fathistc","","goff");
-  	fathistc->Sumw2();
+  	fathistc->Sumw2(kTRUE);
   	fathistc->Scale(1/fathistc->Integral());
   	fathistc->SetMarkerStyle(20);
 
@@ -77,6 +77,10 @@ void FatHist(int fileN){
   	fathist->Draw("same P");
   	fathist2->Draw("same P");
   	tl->Draw();
-  	tc->Print("fatrate 100.pdf");
+  	tc->Print("fatrate 101.pdf");
+
+  	for(int i=0; i<Nbins; i++){
+  		std::cout<<fathist2->GetBinContent(i)<<'\n';
+  	}
   	
 }
