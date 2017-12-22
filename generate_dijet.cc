@@ -310,7 +310,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-  std::cout<<"init"<<'\n';
   SlowJet fatjet(-1, 0.8, 10,4,2,1);
   SlowJet slowJet( -1, 0.4, 10, 4, 2, 1);
 
@@ -350,7 +349,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
       continue;
-    std::cout<<"event loop"<<iEvent<<endl;
+    //std::cout<<"event loop"<<iEvent<<'\n';
     slowJet. analyze( pythia.event );
     fatjet.analyze(pythia.event);
     p1.px = pythia.event[5].px();
