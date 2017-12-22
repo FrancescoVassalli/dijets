@@ -291,34 +291,7 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
   }
   *phi = jet_phi[index];
   *y = jet_y[index];
-}/*
-inline float* copyJetpT(std::vector<JetSruct> *jets){
-  float arr[jets->size()];
-  for(unsigned int i=0; i<jets->size();i++){
-    arr[i] = (*jets)[i].pT;
-  }
 }
-inline float** make2DpT(std::vector<JetSruct> *skinny, const int SIZE, const int SIZE2, float skinnypT[][SIZE2]){
-  float *temp;
-  for(int i=0; i<SIZE; i++){
-    temp = copyJetpT(skinny);
-    for(unsigned int j=0; j<skinny->size();j++){
-      skinnypT[i][j] = temp[j];
-    }
-  }
-  return skinnypT;
-}
-
-XjT* processdata(const int SIZE, std::vector<JetSruct> *skinny, std::vector<JetSruct> *fatty, std::vector<float> *fatratio){
-  const int skinnySIZE = (*skinny).size();
-  float skinnypT[SIZE][skinnySIZE];
-  const int fattySIZE =(*fatty).size();
-  float fattypT[SIZE][fattySIZE];
-  skinnypT = make2DpT(skinny,SIZE,skinnypT);
-  fattypT = make2DpT(fatty, SIZE, skinnypT);
-
-  
-}*/
 
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
   TFile* f = new TFile(filename.c_str(),"RECREATE");
@@ -326,63 +299,58 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   t->SetAutoFlush(-70000);
   std::vector<double> interE = {50,70,90,100,110,126,140,170,200}; 
   std::vector<double> interM={.5,.43,.35,.3,.25,.2,.15,.1,.05};
-  tk::spline spline;
-  spline.set_points(interE,interM);
 
   Pythia pythia;
   pythia.readString("Beams:eCM = 2760.");
   pythia.readString("HardQCD:all = on");
+  pythia.readString("Random::setSeed = on");
+  pythia.readString("Random::seed =0");
   if(lowpT)
     pythia.readString("PhaseSpace:pTHatMin = 80.");
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-
+  std::cout<<"init"<<'\n';
   SlowJet fatjet(-1, 0.8, 10,4,2,1);
   SlowJet slowJet( -1, 0.4, 10, 4, 2, 1);
 
   short jet_n;
   short fatjetcount;
-  float highjet;
-  float lowjet;
   std::vector<JetSruct> skinny;
   std::vector<JetSruct> fatty;
   std::vector<float> fatratio;
   Parton p1; Parton p2;
-  float  Xj,X1,X2,X3,XA,XB,QQ1,QQ2,QQ3,QQA,QQB,QQC,QG1,QG2,QG3,QGA,QGB,QGC,GQ1,GQ2,GQ3,GQA,GQB,GQC,GG1,GG2,GG3,GGA,GGB, GGC, XC,RAQQ, RAQG, RAGQ, RAGG, RBQQ,RBQG,RBGQ,RBGG,RCQQ,RCQG,RCGQ,RCGG;
-  float xrate, xrateB, xrateC;
-  float X4,X5,XD,XE,XP;
+  float  QQ1,QG1,GQ1,GG1;
 
-  const int nXj = 20;
+  /*
+    The tree will keep track of 7 things
+    1. Control group
+    2. Test group 1
+    3. Test group 2
+    4-7. Test group 1 by parton
+
+  */
+  const int nXj = 7;
   XjT Xjs[nXj];
-
-  t->Branch("highjet",&highjet);t->Branch("lowjet",&lowjet);
-  t->Branch("Xj", &Xj);t->Branch("X1", &X1);t->Branch("X2", &X2); t->Branch("X3", &X3);t->Branch("XA", &XA); t->Branch("XB", &XB);t->Branch("XC", &XC);
-  t->Branch("X4", &X4);t->Branch("X5", &X5);
-  t->Branch("QQ1",&QQ1);t->Branch("QQ2",&QQ2);t->Branch("QQ3",&QQ3);t->Branch("QQA",&QQA);t->Branch("QQB", &QQB);t->Branch("QQC",&QQC);t->Branch("QG1",&QG1);t->Branch("QG2",&QG2);t->Branch("QG3",&QG3);t->Branch("QGA",&QGA);t->Branch("QGB",&QGB);t->Branch("QGC",&QGC);t->Branch("GQ1",&GQ1);t->Branch("GQ2",&GQ2);t->Branch("GQ3",&GQ3);t->Branch("GQA",&GQA);t->Branch("GQB",&GQB);t->Branch("GQC",&GQC);t->Branch("GG1",&GG1);t->Branch("GG2",&GG2);t->Branch("GG3",&GG3);t->Branch("GGA",&GGA);t->Branch("GGB",&GGB);t->Branch("GGC", &GGC);
-  t->Branch("XD",&XD);t->Branch("XE", &XE);t->Branch("XP",&XP);
-  t->Branch("xrate", &xrate);t->Branch("xrateB",&xrateB);t->Branch("xrateC", &xrateC);
-  t->Branch("RAQQ", &RAQQ);t->Branch("RBQQ",&RBQQ); t->Branch("RCQQ",&RCQQ);t->Branch("RAQG",&RAQG);t->Branch("RBQG",&RBQG);t->Branch("RBGQ",&RBGQ);t->Branch("RBGG",&RBGG);t->Branch("RCQG", &RCQG); t->Branch("RAGG",&RAGG);t->Branch("RAGQ",&RAGQ);t->Branch("RAGG",&RAGG);t->Branch("RBQG",&RBQG);t->Branch("RCGQ",&RCGQ);t->Branch("RBGG", &RBGG); t->Branch("RCGG",&RCGG);
-  t->Branch("fatratio", &fatratio[0]);
-  t->Branch("quadFat", &Xjs[13].Xj);
-  t->Branch("linFat", &Xjs[14].Xj);
+  t->Branch("Xj", &Xjs[0].Xj);
+  t->Branch("X1", &Xjs[1].Xj);
+  t->Branch("QQ1",&QQ1);t->Branch("QG1",&QG1);t->Branch("GQ1",&GQ1);t->Branch("GG1",&GG1);
+  t->Branch("X2",&Xjs[2].Xj);
 
   std::vector<JetSruct> skinnyTemp;
   std::vector<JetSruct> fattyTemp;
   std::string temp;
   const int nfjets=nXj*2;
-  const float RATE = 1.5;
-  const float RATEB=2;
-  const float RATEC=1;
   float fjets[nfjets];
-  float leadfatjets[nfjets/2];
-  int eventType[nfjets/2];
+  float leadfatjets[nXj];
+  int eventType[nXj];
   int iAlag=0;
   int ipt1=0;
 
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
       continue;
+    std::cout<<"event loop"<<iEvent<<endl;
     slowJet. analyze( pythia.event );
     fatjet.analyze(pythia.event);
     p1.px = pythia.event[5].px();
@@ -416,18 +384,17 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     }
     fattyTemp=fatty;
    
-    Xj=0; QQ1=0;QQ2=0;QQ3=0;QQA=0;QQB=0;QG1=0;QG2=0;QG3=0;QGA=0;QGB=0;GQ1=0;GQ2=0;GQ3=0;GQA=0;GQB=0;GG1=0;GG2=0;GG3=0;GGA=0;GGB=0;xrate=0;XC=0;QQC=0;QGC=0;GQC=0;GGC=0;RAQQ=0; RAQG=0; RAGQ=0; RAGG=0; RBQQ=0;RBQG=0;RBGQ=0;RBGG=0;RCQQ=0;RCQG=0;RCGQ=0;RCGG=0;
-    
+    QQ1=0;QG1=0;GQ1=0;GG1=0;
     iAlag=0;
     ipt1=0;
-    highjet=fjets[0] = skinny[0].pT;
-    lowjet =fjets[1] = skinny[1].pT;
+    fjets[0] = skinny[0].pT; //1
+    fjets[1] = skinny[1].pT;
     leadfatjets[0]=fatty[0].pT;
     fatratio = makeFatRatio(&skinny,&fatty);
-
+//2
     for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT = skinny[i].pT-randomPositive(0,20);
-       fatty[i].pT=fatty[i].pT-randomPositive(0,20);
+       skinny[i].pT=skinny[i].pT-randomPositive(20,10)/(fatratio[i]);
+       fatty[i].pT=fatty[i].pT-randomPositive(20,10)/(fatratio[i]);
      }
        ipt1 = jetMax1(&skinny, &fjets[2],0);
        jetMax1(&skinny, &fjets[3],fjets[2]);
@@ -436,10 +403,10 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
        ipt1 = jetMax1(&fatty, &leadfatjets[1],0);
        fatty=fattyTemp;
-
+//3
     for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-randomPositive(10,20);
-       fatty[i].pT=fatty[i].pT-randomPositive(10,20);
+       skinny[i].pT=skinny[i].pT-randomPositive(20,10)/(fatratio[i]*fatratio[i]);
+       fatty[i].pT=fatty[i].pT-randomPositive(20,10)/(fatratio[i]*fatratio[i]);
      }
        ipt1=jetMax1(&skinny, &fjets[4],0);
        jetMax1(&skinny, &fjets[5],fjets[4]);
@@ -447,177 +414,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
        skinny=skinnyTemp;
        ipt1 = jetMax1(&fatty, &leadfatjets[2],0);
        fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-randomPositive(20,20);
-       fatty[i].pT=fatty[i].pT-randomPositive(20,20);
-     }
-       ipt1=jetMax1(&skinny, &fjets[6],0);
-       jetMax1(&skinny, &fjets[7],fjets[6]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[3],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.2, .05));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.2, .05));
-     }
-       ipt1=jetMax1(&skinny, &fjets[8],0);
-       jetMax1(&skinny, &fjets[9],fjets[8]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[4],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.2, .1));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.2, .1));
-     }
-       ipt1=jetMax1(&skinny, &fjets[10],0);
-       jetMax1(&skinny, &fjets[11],fjets[10]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[5],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-(skinny[i].mult*RATE);
-       fatty[i].pT=fatty[i].pT-(fatty[i].mult*RATE);
-     }
-       ipt1=jetMax1(&skinny, &fjets[12],0);
-       jetMax1(&skinny, &fjets[13],fjets[12]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[6],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.2, .2));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.2, .2));
-     }
-       ipt1=jetMax1(&skinny, &fjets[14],0);
-       jetMax1(&skinny, &fjets[15],fjets[14]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[7],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-randomPositive(20,30);
-       fatty[i].pT=fatty[i].pT-randomPositive(20,30);
-     }
-       ipt1=jetMax1(&skinny, &fjets[16],0);
-       jetMax1(&skinny, &fjets[17],fjets[16]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[8],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-randomPositive(20,40);
-       fatty[i].pT=fatty[i].pT-randomPositive(20,40);
-     }
-       ipt1=jetMax1(&skinny, &fjets[18],0);
-       jetMax1(&skinny, &fjets[19],fjets[18]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[9],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.2, .2)); //this is a duplicate 
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.2, .2));
-     }
-       ipt1=jetMax1(&skinny, &fjets[20],0);
-       jetMax1(&skinny, &fjets[21],fjets[20]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[10],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-(skinny[i].mult*RATEB);
-       fatty[i].pT=fatty[i].pT-(fatty[i].mult*RATEB);
-     }
-       ipt1=jetMax1(&skinny, &fjets[22],0);
-       jetMax1(&skinny, &fjets[23],fjets[22]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[11],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-(skinny[i].mult*RATEC);
-       fatty[i].pT=fatty[i].pT-(fatty[i].mult*RATEC);
-     }
-       ipt1=jetMax1(&skinny, &fjets[24],0);
-       jetMax1(&skinny, &fjets[25],fjets[24]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y); 
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[12],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){ //fat algs
-       skinny[i].pT=skinny[i].pT-randomPositive(20,10)/(fatratio[i]*fatratio[i]);
-       fatty[i].pT=fatty[i].pT-randomPositive(20,10)/(fatratio[i]*fatratio[i]);
-     }
-       ipt1=jetMax1(&skinny, &fjets[26],0);
-       jetMax1(&skinny, &fjets[27],fjets[26]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi,skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[13],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT-randomPositive(20,10)/(fatratio[i]);
-       fatty[i].pT=fatty[i].pT-randomPositive(20,10)/(fatratio[i]);
-     }
-       ipt1=jetMax1(&skinny, &fjets[28],0);
-       jetMax1(&skinny, &fjets[29],fjets[28]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi,skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[14],0);
-       fatty=fattyTemp;fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){  // // these are for the Z algorithms
-       skinny[i].pT=skinny[i].pT-(skinny[i].mult*RATEB);
-       fatty[i].pT=fatty[i].pT-(fatty[i].mult*RATEB);
-     }
-       ipt1=jetMax1(&skinny, &fjets[30],0);
-       jetMax1(&skinny, &fjets[31],fjets[30]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[15],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){ // ditto
-       skinny[i].pT=skinny[i].pT-(skinny[i].mult*RATEB);
-       fatty[i].pT=fatty[i].pT-(fatty[i].mult*RATEB);
-     }
-       ipt1=jetMax1(&skinny, &fjets[32],0);
-       jetMax1(&skinny, &fjets[33],fjets[32]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[16],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.3,.2));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.3,.2));
-     }
-       ipt1=jetMax1(&skinny, &fjets[34],0);
-       jetMax1(&skinny, &fjets[35],fjets[34]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[17],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(.1,.2));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(.1,.2));
-     }
-       ipt1=jetMax1(&skinny, &fjets[36],0);
-       jetMax1(&skinny, &fjets[37],fjets[36]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[18],0);
-       fatty=fattyTemp;
-    for(int i=0; i<slowJet.sizeJet();++i){
-       skinny[i].pT=skinny[i].pT*(1-randomPositive(spline(skinny[i].pT),.2));
-       fatty[i].pT=fatty[i].pT*(1-randomPositive(spline(fatty[i].pT),.2));
-     }
-       ipt1=jetMax1(&skinny, &fjets[38],0);
-       jetMax1(&skinny, &fjets[39],fjets[38]);
-       eventType[iAlag++] = eType(&p1,&p2,skinny[ipt1].phi, skinny[ipt1].y);
-       skinny=skinnyTemp;
-       ipt1 = jetMax1(&fatty, &leadfatjets[19],0);
-       fatty=fattyTemp;
-    std::string fatBranchName;
     for(int i=0; i<nXj; i++){
       Xjs[i].Xj = fixXj(&fjets[2*i+1],&fjets[2*i],fitNUM,fitMAX);
       Xjs[i].type = eventType[i];
@@ -630,65 +426,18 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
              Xjs[i].type=2;
       }
     }
-    Xj = Xjs[0].Xj;
-    X1 = Xjs[1].Xj;
-    X2 = Xjs[2].Xj;
-    X3 = Xjs[3].Xj;
-    XA = Xjs[4].Xj;
-    XB = Xjs[5].Xj;
-    xrate = Xjs[6].Xj;
-    XC = Xjs[7].Xj;
-    X4 = Xjs[8].Xj;
-    X5 = Xjs[9].Xj;
-    xrateB = Xjs[11].Xj;
-    xrateC = Xjs[12].Xj;
-    XD = Xjs[17].Xj;
-    XE = Xjs[18].Xj;
-    XP = Xjs[19].Xj;
     switch(Xjs[1].type){
     case 1:
        QQ1 = Xjs[1].Xj;
-       QQ2=Xjs[2].Xj;
-       QQ3=Xjs[3].Xj;
-       QQA=Xjs[4].Xj;
-       QQB=Xjs[5].Xj;
-       QQC=Xjs[10].Xj;
-       RAQQ = xrate;
-       RBQQ = Xjs[11].Xj;
-       RCQQ = Xjs[12].Xj;
        break;
     case 2:
        QG1 = Xjs[1].Xj;
-       QG2=Xjs[2].Xj;
-       QG3=Xjs[3].Xj;
-       QGA=Xjs[4].Xj;
-       QGB=Xjs[5].Xj;
-       QGC=Xjs[10].Xj;
-       RAQG = xrate;
-       RBQG = Xjs[11].Xj;
-       RCQG = Xjs[12].Xj;
        break;
     case 3:
        GQ1 = Xjs[1].Xj;
-       GQ2=Xjs[2].Xj;
-       GQ3=Xjs[3].Xj;
-       GQA=Xjs[4].Xj;
-       GQB=Xjs[5].Xj;
-       GQC=Xjs[10].Xj;
-       RAGQ = xrate;
-       RBGQ = Xjs[11].Xj;
-       RCGQ = Xjs[12].Xj;
        break;
     case 4:
        GG1 = Xjs[1].Xj;
-       GG2=Xjs[2].Xj;
-       GG3=Xjs[3].Xj;
-       GGA=Xjs[4].Xj;
-       GGB=Xjs[5].Xj;
-       GGC=Xjs[10].Xj;
-       RAGG = xrate;
-       RBGG = Xjs[11].Xj;
-       RCGG = Xjs[12].Xj;
        break;
     }
 
@@ -707,7 +456,7 @@ arg#3 = file prefix
 can be run without arguments 
 **/
 int main(int argc, char *argv[]){ 
-  int nEvent =600;
+  int nEvent =1000;
   bool lowpT =true;
   int fitNUM, fitMAX;
   int Noutput=1;
