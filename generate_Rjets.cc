@@ -201,20 +201,20 @@ int minimum(std::vector<float> v){
   return r;
 }
 
- std::vector<Jet> makeFatRatio (std::vector<Jet> jet, std::vector<Jet> fat){
-  std::vector<float> dR(fat.size());
-  std::vector<Jet> out(jet.size());
+ std::vector<Jet> makeFatRatio (std::vector<Jet> *jet, std::vector<Jet> *fat){
+  std::vector<float> dR(fat->size());
+  std::vector<Jet> out(jet->size());
   int mindex;
-  for(unsigned i=0; i<jet.size();i++){
-    for(unsigned j=0; j<fat.size();j++){
-      dR[j] = delR(jet[i], fat[j]);
+  for(unsigned i=0; i<jet->size();i++){
+    for(unsigned j=0; j<fat->size();j++){
+      dR[j] = delR((*jet)[i], (*fat)[j]);
     }
     mindex = minimum(dR);
-    out[i].fatratio = jet[i].pT/fat[mindex].pT;
- 	out[i].pT =jet[i].pT;
- 	out[i].y = jet[i].y;
- 	out[i].phi = jet[i].phi;
- 	out[i].mult = jet[i].mult;
+    out[i].fatratio = (*jet)[i].pT/(*fat)[mindex].pT;
+ 	out[i].pT =(*jet)[i].pT;
+ 	out[i].y = (*jet)[i].y;
+ 	out[i].phi = (*jet)[i].phi;
+ 	out[i].mult = (*jet)[i].mult;
   }
   return out;
 }
@@ -229,18 +229,27 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
 }
 
 std::vector<Jet> findR(std::vector<Jet> *jets, int nR){
-	std::vector<Jet> out(nR);
-	std::vector<Jet> tempout;
+	std::vector<Jet> out(0);
+	std::vector<Jet> tempout(nR);
 	for(int i=0; i<nR-1; i++){
-		tempout= makeFatRatio(jets[i],jets[i+1]);
-		for(unsigned int j=0; j<nR;j++){
-			if(tempout[j].fatratio>.9||i==nR-2){
-				out[j]=tempout[j];
-				out[j].r = .9-i*.05;
+		tempout= makeFatRatio(&jets[i],&jets[i+1]);
+		for(int j=0; j<tempout.size();j++){
+			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
+				tempout[j].r=.9-i*.05;
+				//cout<<tempout[j].pT<<'\n';
+				out.push_back(tempout[j]);
 			}
 		}
 	}
 	return out;
+}
+
+void jetFilter(std::vector<Jet> *jets, int fitNUM, int fitMAX){
+	for(unsigned i=0;i<(*jets).size();i++){
+		if((*jets)[i].pT<fitNUM||(*jets)[i].pT>fitMAX){
+			(*jets).erase((*jets).begin()+i);
+		}
+	}
 }
 
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
@@ -281,7 +290,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::vector<Jet> jets[nR];
   std::vector<Jet> myJets(nR);
   std::vector<Jet> tempjets(nR);
-  //std::vector<Jet> tempjets[nR];
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next())
       continue;
@@ -300,6 +308,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     	jets[i].resize(tempjet->sizeJet());
     	for(int j=0; j<tempjet->sizeJet();j++){
     		jets[i][j].pT= tempjet->pT(i);
+    		//cout<<tempjet->pT(i)<<'\n';
     		jets[i][j].y= tempjet->y(i);
     		jets[i][j].phi= tempjet->phi(i);
     		jets[i][j].mult= tempjet->multiplicity(i);
@@ -308,6 +317,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     }
 
     myJets = findR(jets, nR);// turn the 2D array into a 1D array of 90% jets
+    jetFilter(jets,fitNUM,fitMAX);
    	tempjets=myJets;
     QQ1=0;QG1=0;GQ1=0;GG1=0;
     iAlag=0;
@@ -315,11 +325,13 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     jetMax1(myJets,&fjets[0],0); //1
     jetMax1(myJets,&fjets[1],fjets[0]);
 //2
-   /* for(int i=0; i<nR;++i){
+    for(int i=0; i<nR;++i){
        myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
-     }*/
+       //cout<<myJets[i].pT<<'\n';
+     }
        ipt1 = jetMax1(myJets, &fjets[2],0);
        jetMax1(myJets, &fjets[3],fjets[2]);
+       //cout<<fjets[2]<<": "<<fjets[3]<<'\n';
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
        myJets=tempjets;
 //3
