@@ -1,6 +1,6 @@
 #!/bin/bash
-cp dijet* olddata/
-rm dijet*
+cp Rjet* olddata/
+rm Rjet*
 ./generate_dijet Rjet100 low;
 ./generate_dijet Rjet101 low;
 ./generate_dijet Rjet102 low;
