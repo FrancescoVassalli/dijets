@@ -316,8 +316,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::vector<Jet> myJets(nR);
   std::vector<Jet> tempjets(nR);
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
-  	/*if(iEvent%30==0)  
-  		cout<<"Event N: "<<iEvent<<'\n';*/
+  	if(iEvent%30==0)  
+  		cout<<"Event N: "<<iEvent<<'\n';
     if (!pythia.next())
       continue;
     //std::cout<<"event loop"<<iEvent<<'\n';
@@ -369,7 +369,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       //Xjs[i].type = eventType[i];
       Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
     }
-    switch(Xjs[1].type){
+   /* switch(Xjs[1].type){
     case 1:
        QQ1 = Xjs[1].Xj;
        break;
@@ -382,7 +382,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     case 4:
        GG1 = Xjs[1].Xj;
        break;
-    }
+    }*/
 
     t->Fill();
   }
@@ -396,7 +396,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 870;
+	int nEvent = 500;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
