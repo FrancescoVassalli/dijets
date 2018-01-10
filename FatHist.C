@@ -59,5 +59,13 @@ void FatHist(){
   	fathist->Draw("same P");
   	tl->Draw();
   	tc->Print("fatrate 101.pdf");
-  	
+
+  	int nRbins = 11;
+  	float Rbins[] = {0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1,1.1};
+  	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins, Rbins,Nbins,bins);
+  	XR->SetXTitle("radius of wider jet");
+  	XR->SetYTitle("Xj ratio");
+  	dijet_tree->Draw("Xj:LeadR0>>XR","","goff");
+  	XR->Draw("P");
+  	tc->Print("XjwrtR.pdf");
 }
