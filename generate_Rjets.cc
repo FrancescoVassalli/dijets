@@ -246,10 +246,9 @@ std::vector<Jet> findR(std::vector<Jet> *jets, int nR){
 }
 
 void jetFilter(std::vector<Jet> *jets, int fitNUM, int fitMAX){
-	for(unsigned i=0;i<(*jets).size();i++){
-		if((*jets)[i].pT<fitNUM||(*jets)[i].pT>fitMAX){
-			(*jets).erase((*jets).begin()+i);
-		}
+	for(unsigned i=0;i<jets->size();i++){
+		if((*jets)[i].pT<fitNUM||(*jets)[i].pT>fitMAX)
+			jets->erase(jets->begin()+i);
 	}
 }
 
@@ -309,6 +308,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::vector<Jet> myJets(nR);
   std::vector<Jet> tempjets(nR);
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
+  	if(iEvent%30==0)  
+  		cout<<"Event N: "<<iEvent<<'\n';
     if (!pythia.next())
       continue;
     //std::cout<<"event loop"<<iEvent<<'\n';
@@ -335,7 +336,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     }
 
     myJets = findR(jets, nR);// turn the 2D array into a 1D array of 90% jets
-    jetFilter(jets,fitNUM,fitMAX);
+    jetFilter(&myJets,fitNUM,fitMAX);
    	tempjets=myJets;
     QQ1=0;QG1=0;GQ1=0;GG1=0;
     iAlag=0;
@@ -343,10 +344,10 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     fR[0] = myJets[ipt1].r;
     ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
     fR[1] = myJets[ipt1].r;
+    cout<<fjets[1]/fjets[0]<<"\n";
 //2
     for(int i=0; i<nR;++i){
        myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
-       //cout<<myJets[i].pT<<'\n';
      }
        ipt1 = jetMax1(myJets, &fjets[2],0);
        fR[2] = myJets[ipt1].r;
@@ -360,7 +361,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       Xjs[i].Xj = fixXj(&fjets[2*i+1],&fjets[2*i],fitNUM,fitMAX);
       Xjs[i].type = eventType[i];
       Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
-      cout<<Xjs[i].r<<'\n';
+      //cout<<Xjs[i].r<<'\n';
       if(Xjs[i].Xj>1){
          Xjs[i].Xj = 1/Xjs[i].Xj;
          if(Xjs[i].type ==2)
@@ -396,7 +397,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 10000;
+	int nEvent = 1000;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
