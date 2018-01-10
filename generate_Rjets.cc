@@ -29,6 +29,8 @@ struct XjT{
   float r;
 };
 
+float maxFloat(float, float);
+
 inline float randomPositive(double mean, double sig){
   float r = gRandom->Gaus(mean, sig);
   while(r<0){
@@ -70,6 +72,12 @@ inline float fixXj(float j1, float j2, int min, int max){
   if(j1<min||j2<25||j1>max||j2>max)
     return 0;
   return j2/(j1);
+}
+inline float fixXj(float j1, float j2){
+	if(j1>j2)
+		return j2/j1;
+	else
+		return j1/j2;
 }
 
 float delPhi(float phi1, Parton p1){
@@ -308,8 +316,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::vector<Jet> myJets(nR);
   std::vector<Jet> tempjets(nR);
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
-  	if(iEvent%30==0)  
-  		cout<<"Event N: "<<iEvent<<'\n';
+  	/*if(iEvent%30==0)  
+  		cout<<"Event N: "<<iEvent<<'\n';*/
     if (!pythia.next())
       continue;
     //std::cout<<"event loop"<<iEvent<<'\n';
@@ -340,11 +348,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
    	tempjets=myJets;
     QQ1=0;QG1=0;GQ1=0;GG1=0;
     iAlag=0;
+//1
     ipt1=jetMax1(myJets,&fjets[0],0); //1
     fR[0] = myJets[ipt1].r;
     ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
     fR[1] = myJets[ipt1].r;
-    cout<<fjets[1]/fjets[0]<<"\n";
 //2
     for(int i=0; i<nR;++i){
        myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
@@ -353,22 +361,13 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
        fR[2] = myJets[ipt1].r;
        ipt1= jetMax1(myJets, &fjets[3],fjets[2]);
        fR[3] = myJets[ipt1].r;
-       //cout<<fjets[2]<<": "<<fjets[3]<<'\n';
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
        myJets=tempjets;
-//3
+//out
     for(int i=0; i<nXj; i++){
-      Xjs[i].Xj = fixXj(&fjets[2*i+1],&fjets[2*i],fitNUM,fitMAX);
-      Xjs[i].type = eventType[i];
+      Xjs[i].Xj = fixXj(fjets[2*i+1],fjets[2*i]);
+      //Xjs[i].type = eventType[i];
       Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
-      //cout<<Xjs[i].r<<'\n';
-      if(Xjs[i].Xj>1){
-         Xjs[i].Xj = 1/Xjs[i].Xj;
-         if(Xjs[i].type ==2)
-             Xjs[i].type=3;
-         else if(Xjs[i].type==3)
-             Xjs[i].type=2;
-      }
     }
     switch(Xjs[1].type){
     case 1:
@@ -397,7 +396,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 1000;
+	int nEvent = 870;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
