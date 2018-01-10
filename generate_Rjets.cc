@@ -26,6 +26,7 @@ struct XjT{
   float Xj;
   float fat;
   short type;
+  float r;
 };
 
 inline float randomPositive(double mean, double sig){
@@ -233,9 +234,9 @@ std::vector<Jet> findR(std::vector<Jet> *jets, int nR){
 	std::vector<Jet> tempout(nR);
 	for(int i=0; i<nR-1; i++){
 		tempout= makeFatRatio(&jets[i],&jets[i+1]);
-		for(int j=0; j<tempout.size();j++){
+		for(unsigned j=0; j<tempout.size();j++){
 			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
-				tempout[j].r=.9-i*.05;
+				tempout[j].r=(i+1)*.05;
 				//cout<<tempout[j].pT<<'\n';
 				out.push_back(tempout[j]);
 			}
@@ -250,6 +251,19 @@ void jetFilter(std::vector<Jet> *jets, int fitNUM, int fitMAX){
 			(*jets).erase((*jets).begin()+i);
 		}
 	}
+}
+
+inline float getMaxR(Jet j1, Jet j2){
+	if(j2.r>j1.r)
+		return j2.r;
+	else
+		return j1.r;
+}
+inline float maxFloat(float j1, float j2){
+	if(j2>j1)
+		return j2;
+	else
+		return j1;
 }
 
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
@@ -281,12 +295,16 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   float QQ1,QG1,GQ1,GG1;
   t->Branch("Xj", &Xjs[0].Xj);
   t->Branch("XjR", &Xjs[1].Xj);
+  t->Branch("LeadR0",&Xjs[0].r);
+  t->Branch("LeadR1",&Xjs[1].r);
 
   const int nfjets=nXj*2;
   float fjets[nfjets];
   int eventType[nXj];
   int iAlag=0;
   int ipt1=0;
+  float Rsum=0;
+  float fR[nfjets];
   std::vector<Jet> jets[nR];
   std::vector<Jet> myJets(nR);
   std::vector<Jet> tempjets(nR);
@@ -302,8 +320,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     p2.py=pythia.event[6].py();
     p1.id= pythia.event[5].id();
     p2.id= pythia.event[6].id();
-    for(int i=0; i<nR; i++){  //make an array of the jets
-    	tempjet= new SlowJet(-1,0.9-.05*i, 10,4,2,1);
+    for(int i=1; i<nR; i++){  //make an array of the jets
+    	tempjet= new SlowJet(-1,.05*i, 10,4,2,1);
     	tempjet->analyze(pythia.event);
     	jets[i].resize(tempjet->sizeJet());
     	for(int j=0; j<tempjet->sizeJet();j++){
@@ -321,16 +339,19 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
    	tempjets=myJets;
     QQ1=0;QG1=0;GQ1=0;GG1=0;
     iAlag=0;
-    ipt1=0;
-    jetMax1(myJets,&fjets[0],0); //1
-    jetMax1(myJets,&fjets[1],fjets[0]);
+    ipt1=jetMax1(myJets,&fjets[0],0); //1
+    fR[0] = myJets[ipt1].r;
+    ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
+    fR[1] = myJets[ipt1].r;
 //2
     for(int i=0; i<nR;++i){
        myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
        //cout<<myJets[i].pT<<'\n';
      }
        ipt1 = jetMax1(myJets, &fjets[2],0);
-       jetMax1(myJets, &fjets[3],fjets[2]);
+       fR[2] = myJets[ipt1].r;
+       ipt1= jetMax1(myJets, &fjets[3],fjets[2]);
+       fR[3] = myJets[ipt1].r;
        //cout<<fjets[2]<<": "<<fjets[3]<<'\n';
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
        myJets=tempjets;
@@ -338,6 +359,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     for(int i=0; i<nXj; i++){
       Xjs[i].Xj = fixXj(&fjets[2*i+1],&fjets[2*i],fitNUM,fitMAX);
       Xjs[i].type = eventType[i];
+      Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
+      cout<<Xjs[i].r<<'\n';
       if(Xjs[i].Xj>1){
          Xjs[i].Xj = 1/Xjs[i].Xj;
          if(Xjs[i].type ==2)
