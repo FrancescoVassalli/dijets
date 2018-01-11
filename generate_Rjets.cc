@@ -276,7 +276,7 @@ inline float maxFloat(float j1, float j2){
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
   TFile* f = new TFile(filename.c_str(),"RECREATE");
   TTree* t=new TTree("tree100","100pThat events");
-  t->SetAutoFlush(-70000);
+  //t->SetAutoFlush(-70000);
   std::vector<double> interE = {50,70,90,100,110,126,140,170,200}; 
   std::vector<double> interM={.5,.43,.35,.3,.25,.2,.15,.1,.05};
 
@@ -396,7 +396,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 500;
+	int nEvent = 300;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
