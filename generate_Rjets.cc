@@ -295,11 +295,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   SlowJet *tempjet;
 
   std::vector<float> fatratio;
-  Parton p1; Parton p2;
+  //Parton p1; Parton p2;
 
   const int nXj = 2;
   XjT Xjs[nXj];
-  float QQ1,QG1,GQ1,GG1;
+  //float QQ1,QG1,GQ1,GG1;
   t->Branch("Xj", &Xjs[0].Xj);
   t->Branch("XjR", &Xjs[1].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
@@ -307,10 +307,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
   const int nfjets=nXj*2;
   float fjets[nfjets];
-  int eventType[nXj];
-  int iAlag=0;
   int ipt1=0;
-  float Rsum=0;
   float fR[nfjets];
   std::vector<Jet> jets[nR];
   std::vector<Jet> myJets(nR);
@@ -321,14 +318,14 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     if (!pythia.next())
       continue;
     //std::cout<<"event loop"<<iEvent<<'\n';
-    p1.px = pythia.event[5].px();
+   /* p1.px = pythia.event[5].px();
     p1.py=pythia.event[5].py();
     p1.eta = pythia.event[5].eta();
     p2.eta = pythia.event[6].eta();
     p2.px=pythia.event[6].px();
     p2.py=pythia.event[6].py();
     p1.id= pythia.event[5].id();
-    p2.id= pythia.event[6].id();
+    p2.id= pythia.event[6].id();*/
     for(int i=1; i<nR; i++){  //make an array of the jets
     	tempjet= new SlowJet(-1,.05*i, 10,4,2,1);
     	tempjet->analyze(pythia.event);
@@ -346,8 +343,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     myJets = findR(jets, nR);// turn the 2D array into a 1D array of 90% jets
     jetFilter(&myJets,fitNUM,fitMAX);
    	tempjets=myJets;
-    QQ1=0;QG1=0;GQ1=0;GG1=0;
-    iAlag=0;
 //1
     ipt1=jetMax1(myJets,&fjets[0],0); //1
     fR[0] = myJets[ipt1].r;
@@ -396,7 +391,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 300;
+	int nEvent = 400;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
