@@ -296,21 +296,26 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-  const int nR=14;
+  const int nR=20;
   std::vector<SlowJet*> kT(nR);
   SlowJet *tempjet;
 
   std::vector<float> fatratio;
   //Parton p1; Parton p2;
 
-  const int nXj = 3;
+  const int nXj = 3+nR;
   XjT Xjs[nXj];
   //float QQ1,QG1,GQ1,GG1;
   t->Branch("Xj", &Xjs[0].Xj);
-  t->Branch("XjR", &Xjs[1].Xj);
-  t->Branch("XjR1", &Xjs[2].Xj);
+  t->Branch("XjQ0", &Xjs[1].Xj);
+  t->Branch("XjQ1", &Xjs[2].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
-  t->Branch("LeadR1",&Xjs[1].r);
+  std::string branchname = "XjR";
+  std::string stringtemp;
+  for(int i=0; i<nR;i++){
+  	stringtemp = branchname+std::to_string(i);
+  	t->Branch(stringtemp.c_str(),&Xjs[3+i].Xj);
+  }
 
   const int nfjets=nXj*2;
   float fjets[nfjets];
