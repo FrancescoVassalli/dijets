@@ -15,7 +15,7 @@ macro for making the histograms based on fat ratio
 
 void FatHist(int filecount){
 	TCanvas *tc = new TCanvas();
- 	bool lowpT = false;
+ 	bool lowpT = true;
  	float stateMax;
   	std::string outfile;
   	if(lowpT){
@@ -30,7 +30,7 @@ void FatHist(int filecount){
 
   	std::string infile;
   	if(lowpT) 
-  		infile= "Rjet10";
+  		infile= "Rjet11";
   	else
   		infile= "Rjet20";
   	std::string fileappend = ".root";
@@ -73,13 +73,23 @@ void FatHist(int filecount){
   	tl->Draw();
   	tc->Print("fatrate 101.pdf");
 
-  	int nRbins = 5;
-  	float Rbins[] = {0,.1,.2,.3,.4,.5};
+  	int nRbins = 13;
+  	float Rbins[] = {0,.05,.1,.15,.2,.25,.3,.35,.4,.45,.5,.55,.6,.65};
+  	/* make a log Z*/
   	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins, Rbins,Nbins,bins);
   	XR->SetXTitle("radius of wider jet");
   	XR->SetYTitle("Xj ratio");
   	dijet_tree->Draw("Xj:LeadR0>>XR","","goff");
+  	tc->SetLogz();
   	XR->Draw("colz");
   	std::string printfile = "XjwrtR"+outfile;
+  	tc->Print(printfile.c_str());
+
+  	TH1F *Jr = new TH1F("Jr","radius of wider jet", nRbins,Rbins);
+  	Jr->SetXTitle("radius of wider jet");
+  	Jr->SetYTitle("count");
+  	dijet_tree->Draw("LeadR0>>Jr","","goff");
+  	Jr->Draw();
+  	printfile = "JetR"+outfile;
   	tc->Print(printfile.c_str());
 }
