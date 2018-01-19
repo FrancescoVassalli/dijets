@@ -243,7 +243,7 @@ std::vector<Jet> findR(std::vector<Jet> *jets, int nR){
 	for(int i=0; i<nR-1; i++){
 		tempout= makeFatRatio(&jets[i],&jets[i+1]);
 		for(unsigned j=0; j<tempout.size();j++){
-			if((tempout[j].fatratio>.75||i==nR-2)&&tempout[j].pT>0){
+			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
 				tempout[j].r=(i+1)*.05;
 				//cout<<tempout[j].pT<<'\n';
 				out.push_back(tempout[j]);
@@ -277,9 +277,9 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   TFile* f = new TFile(filename.c_str(),"RECREATE");
   TTree* t=new TTree("tree100","100pThat events");
   //t->SetAutoFlush(-70000);
-  std::vector<double> interE = {50,70,90,100,110,126,140,170,200}; 
+ /* std::vector<double> interE = {50,70,90,100,110,126,140,170,200}; 
   std::vector<double> interM={.5,.43,.35,.3,.25,.2,.15,.1,.05};
-
+*/
   Pythia pythia;
   pythia.readString("Beams:eCM = 2760.");
   pythia.readString("HardQCD:all = on");
@@ -296,7 +296,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-  const int nR=20;
+  const int nR=25;
   std::vector<SlowJet*> kT(nR);
   SlowJet *tempjet;
 
@@ -338,7 +338,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     p2.py=pythia.event[6].py();
     p1.id= pythia.event[5].id();
     p2.id= pythia.event[6].id();*/
-    for(int i=1; i<nR; i++){  //make an array of the jets
+    for(int i=0; i<nR; i++){  //make an array of the jets
     	tempjet= new SlowJet(-1,.05*i, 10,4,2,1);
     	tempjet->analyze(pythia.event);
     	jets[i].resize(tempjet->sizeJet());
@@ -408,7 +408,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 400;
+	int nEvent = 526;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
