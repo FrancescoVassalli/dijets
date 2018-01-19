@@ -8,7 +8,7 @@
 #include "TChain.h"
 
 /**
-macro for making the histograms based on fat ratio
+add 1D histrograms seperated by R
 
 **/
 
@@ -32,7 +32,7 @@ void FatHist(int filecount){
   	if(lowpT) 
   		infile= "Rjet11";
   	else
-  		infile= "Rjet20";
+  		infile= "Rjet21";
   	std::string fileappend = ".root";
   	int printcount=0;
   	std::string filename = infile+std::to_string(printcount)+fileappend;
@@ -46,36 +46,9 @@ void FatHist(int filecount){
 
   	float bins[] = {.32,.36,.39,.45,.5,.56,.63,.7,.79,.88,1};
   	const int Nbins = 10;
-  	TH1F *fathist = new TH1F("fathist","Xj fat based quench", Nbins, bins);
-  	fathist->SetXTitle("Xj ratio (Pt2/Pt1)");
-  	fathist->SetYTitle("Count");
-  	dijet_tree->Draw("XjR>>fathist","","goff");
-  	fathist->Sumw2(kTRUE);
-  	fathist->Scale(1/fathist->Integral());
-  	fathist->SetMarkerStyle(20);
-  	fathist->SetMarkerColor(kRed);
-  	fathist->SetLineColor(kRed);
 
-  	TH1F *fathistc = new TH1F("fathistc","Xj fat based quench", Nbins, bins);
-  	fathistc->SetXTitle("Xj ratio (Pt2/Pt1)");
-  	fathistc->SetYTitle("Count");
-  	dijet_tree->Draw("Xj>>fathistc","","goff");
-  	fathistc->Sumw2(kTRUE);
-  	fathistc->Scale(1/fathistc->Integral());
-  	fathistc->SetMarkerStyle(20);
-
-  	TLegend *tl = new TLegend(.4,.7,.6,.9);
-  	tl->AddEntry(fathist, "R-quench", "l");
-  	tl->AddEntry(fathistc, "control", "l");
-
-  	fathistc->Draw("P");
-  	fathist->Draw("same P");
-  	tl->Draw();
-  	tc->Print("fatrate 101.pdf");
-
-  	int nRbins = 13;
-  	float Rbins[] = {0,.05,.1,.15,.2,.25,.3,.35,.4,.45,.5,.55,.6,.65};
-  	/* make a log Z*/
+  	int nRbins = 20;
+  	float Rbins[] = {0,.05,.1,.15,.2,.25,.3,.35,.4,.45,.5,.55,.6,.65,.7,.75,.8,.85,.9,.95,1};
   	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins, Rbins,Nbins,bins);
   	XR->SetXTitle("radius of wider jet");
   	XR->SetYTitle("Xj ratio");
@@ -92,4 +65,22 @@ void FatHist(int filecount){
   	Jr->Draw();
   	printfile = "JetR"+outfile;
   	tc->Print(printfile.c_str());
+/*
+    TH1F *rselect;
+    std::string selectname = "XjR";
+    std::string temp;
+    for(int i=0; i<nRbins+1;i++){
+      temp = selectname+std::to_string(i*.05+.05);
+      rselect= new TH1F("rselect",temp.c_str(),Nbins,bins);
+      rselect->SetXTitle("Xj ratio");
+      rselect->SetYTitle("count");
+      temp = selectname+std::to_string(i)+">>rselect";
+      dijet_tree->Draw(temp.c_str(),"","goff");
+      rselect->Sumw2(kTRUE);
+      rselect->Scale(1/rselect->Integral());
+      rselect->Draw("P");
+      printfile = selectname+std::to_string(i)+outfile;
+      tc->Print(printfile.c_str());
+      delete rselect;
+    }*/
 }
