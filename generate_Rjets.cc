@@ -243,7 +243,7 @@ std::vector<Jet> findR(std::vector<Jet> *jets, int nR){
 	for(int i=0; i<nR-1; i++){
 		tempout= makeFatRatio(&jets[i],&jets[i+1]);
 		for(unsigned j=0; j<tempout.size();j++){
-			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
+			if((tempout[j].fatratio>.75||i==nR-2)&&tempout[j].pT>0){
 				tempout[j].r=(i+1)*.05;
 				//cout<<tempout[j].pT<<'\n';
 				out.push_back(tempout[j]);
@@ -283,6 +283,12 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   Pythia pythia;
   pythia.readString("Beams:eCM = 2760.");
   pythia.readString("HardQCD:all = on");
+  /*
+  pythia flair promptphoton:all
+  for gamma jet pair
+  limit pThat around 40
+  rebin for gamma
+  */
   pythia.readString("Random::setSeed = on");
   pythia.readString("Random::seed =0");
   if(lowpT)
@@ -290,18 +296,19 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-  const int nR=7;
+  const int nR=14;
   std::vector<SlowJet*> kT(nR);
   SlowJet *tempjet;
 
   std::vector<float> fatratio;
   //Parton p1; Parton p2;
 
-  const int nXj = 2;
+  const int nXj = 3;
   XjT Xjs[nXj];
   //float QQ1,QG1,GQ1,GG1;
   t->Branch("Xj", &Xjs[0].Xj);
   t->Branch("XjR", &Xjs[1].Xj);
+  t->Branch("XjR1", &Xjs[2].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
   t->Branch("LeadR1",&Xjs[1].r);
 
@@ -349,6 +356,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
     fR[1] = myJets[ipt1].r;
 //2
+    /*
+	try xR/.05
+	and a few with <1-R
+
+    */
     for(int i=0; i<nR;++i){
        myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
      }
