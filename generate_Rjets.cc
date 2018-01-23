@@ -316,7 +316,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   	stringtemp = branchname+std::to_string(i);
   	t->Branch(stringtemp.c_str(),&Xjs[3+i].Xj);
   }
-
+  float eventRadius;
   const int nfjets=nXj*2;
   float fjets[nfjets];
   int ipt1=0;
@@ -376,11 +376,19 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
        myJets=tempjets;
 //out
-    for(int i=0; i<nXj; i++){
+    for(int i=0; i<3; i++){
       Xjs[i].Xj = fixXj(fjets[2*i+1],fjets[2*i]);
       //Xjs[i].type = eventType[i];
       Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
     }
+    eventRadius = maxFloat(fR[0],fR[1]);
+    for(int i=3; i<nR;i++){
+    	Xjs[i].r =.05*(i-2);
+    	Xjs[i].Xj=0;
+    	if(Xjs[i].r==eventRadius)
+    		Xjs[i].Xj=Xjs[0].Xj;
+    }
+
    /* switch(Xjs[1].type){
     case 1:
        QQ1 = Xjs[1].Xj;
@@ -408,7 +416,7 @@ int main(int argc, char *argv[]){
 	std::string filename;
 	int fitNUM, fitMAX;
 	bool lowpT;
-	int nEvent = 526;
+	int nEvent = 600;
 	if(argc!=3){
 		std::cout<<"accepts 2 arguments: 1. outfile 2. low or high pT"<<'\n';
 		return 1;
