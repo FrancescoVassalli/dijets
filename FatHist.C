@@ -42,6 +42,7 @@ void FatHist(int filecount){
   		filename=infile+std::to_string(printcount)+fileappend;
   	}
   	gStyle->SetOptStat(0);
+    gStyle->SetErrorX(0);
   	dijet_tree->Add(infile.c_str());
 
   	float bins[] = {.32,.36,.39,.45,.5,.56,.63,.7,.79,.88,1};
@@ -70,12 +71,12 @@ void FatHist(int filecount){
     std::string selectname = "XjR";
     std::string temp;
     float width;
-    for(int i=1; i<nRbins;i++){
+    for(int i=1; i<nRbins-3;i++){
       temp = selectname+std::to_string(i*.05+.05);
-      rselect= new TH1F("rselect",temp.c_str(),Nbins,bins);
+      rselect= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
       rselect->SetXTitle("Xj ratio");
       rselect->SetYTitle("count");
-      temp = selectname+std::to_string(i)+">>rselect";
+      temp = selectname+std::to_string(i)+">>h"+std::to_string(i);
       dijet_tree->Draw(temp.c_str(),"","goff");
       rselect->Sumw2(kTRUE);
       rselect->Scale(1/rselect->Integral());
@@ -88,32 +89,42 @@ void FatHist(int filecount){
       rselect->Draw("P");
       printfile = selectname+std::to_string(i)+outfile;
       tc->Print(printfile.c_str());
-      delete rselect;
     }
 
     delete tc;
-    tc = new TCanvas("tc","1D plots", 1000, 500);
-    tc->Divide(7,3,.01,.02);
+    tc = new TCanvas("tc","1D plots", 1700, 1000);
+    tc->Divide(7,3,.005,.01);
 
-    for(int i=1; i<nRbins;i++){
+    TLatex lax; 
+    for(int i=1; i<nRbins-3;i++){
       tc->cd(i);
+      tc->SetGrid();
+      lax.SetTextSize(.07);
       temp = selectname+std::to_string(i*.05+.05);
-      rselect= new TH1F("rselect",temp.c_str(),Nbins,bins);
+      lax.SetTextAlign(11);
+      lax.DrawLatex(.1,.1,temp.c_str());
+      //lax[i-1].PaintLatex(.3,.3,0,.5,temp.c_str());
+      gPad->SetRightMargin(0.01);
+      gPad->SetBottomMargin(.2);
+      gPad->SetTicky(1);
+      rselect= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
+      rselect->SetTitleSize(.07);
       rselect->SetXTitle("Xj ratio");
-      rselect->SetYTitle("count");
-      temp = selectname+std::to_string(i)+">>rselect";
+      temp = selectname+std::to_string(i)+">>h"+std::to_string(i);
       dijet_tree->Draw(temp.c_str(),"","goff");
       rselect->Sumw2(kTRUE);
       rselect->Scale(1/rselect->Integral());
       rselect->SetMarkerStyle(20);
+      rselect->SetMarkerColor(kRed);
       rselect->SetLineWidth(3);
+      rselect->GetXaxis()->SetLabelSize(.06);
+      rselect->GetYaxis()->SetLabelSize(.06);
       for(int j=0; j<Nbins;j++){
         width = bins[j+1]-bins[j];
         rselect->SetBinContent(j+1,rselect->GetBinContent(j+1)/width);
       }
       rselect->Draw("P");
-      delete rselect;
     }
     printfile = selectname+outfile;
-    tc->Print(printfile.c_str());
+    tc->SaveAs(printfile.c_str());
 }
