@@ -302,8 +302,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
   std::vector<float> fatratio;
   //Parton p1; Parton p2;
-
-  const int nXj = 3+nR;
+  const short preN =3;
+  const int nXj = preN+nR;
   XjT Xjs[nXj];
   //float QQ1,QG1,GQ1,GG1;
   t->Branch("Xj", &Xjs[0].Xj);
@@ -314,7 +314,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::string stringtemp;
   for(int i=0; i<nR;i++){
   	stringtemp = branchname+std::to_string(i);
-  	t->Branch(stringtemp.c_str(),&Xjs[3+i].Xj);
+  	t->Branch(stringtemp.c_str(),&Xjs[preN+i].Xj);
   }
   float eventRadius;
   const int nfjets=nXj*2;
@@ -355,19 +355,19 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     myJets = findR(jets, nR);// turn the 2D array into a 1D array of 90% jets
     jetFilter(&myJets,fitNUM,fitMAX);
    	tempjets=myJets;
-//1
+//0
     ipt1=jetMax1(myJets,&fjets[0],0); //1
     fR[0] = myJets[ipt1].r;
     ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
     fR[1] = myJets[ipt1].r;
-//2
+//1
     /*
 	try xR/.05
 	and a few with <1-R
 
     */
     for(int i=0; i<nR;++i){
-       myJets[i].pT=myJets[i].pT-randomPositive(20,10)/(1-myJets[i].r);
+       myJets[i].pT=myJets[i].pT-randomPositive(15,10)/(.05-myJets[i].r);
      }
        ipt1 = jetMax1(myJets, &fjets[2],0);
        fR[2] = myJets[ipt1].r;
@@ -375,15 +375,25 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
        fR[3] = myJets[ipt1].r;
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
        myJets=tempjets;
+//2
+    for(int i=0; i<nR;++i){
+       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20;
+     }
+       ipt1 = jetMax1(myJets, &fjets[4],0);
+       fR[4] = myJets[ipt1].r;
+       ipt1= jetMax1(myJets, &fjets[5],fjets[4]);
+       fR[5] = myJets[ipt1].r;
+       //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
+       myJets=tempjets;
 //out
-    for(int i=0; i<3; i++){
+    for(int i=0; i<preN; i++){
       Xjs[i].Xj = fixXj(fjets[2*i+1],fjets[2*i]);
       //Xjs[i].type = eventType[i];
       Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
     }
     eventRadius = maxFloat(fR[0],fR[1]);
-    for(int i=3; i<nR;i++){
-    	Xjs[i].r =.05*(i-2);
+    for(int i=preN; i<nR;i++){
+    	Xjs[i].r =.05*(i-preN-1);
     	Xjs[i].Xj=0;
     	if(Xjs[i].r==eventRadius)
     		Xjs[i].Xj=Xjs[0].Xj;
