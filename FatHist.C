@@ -32,7 +32,7 @@ void FatHist(int filecount){
   	if(lowpT) 
   		infile= "Rjet11";
   	else
-  		infile= "Rjet21";
+  		infile= "Rjet22";
   	std::string fileappend = ".root";
   	int printcount=0;
   	std::string filename = infile+std::to_string(printcount)+fileappend;
@@ -48,8 +48,8 @@ void FatHist(int filecount){
   	float bins[] = {.32,.36,.39,.45,.5,.56,.63,.7,.79,.88,1};
   	const int Nbins = 10;
 
-  	int nRbins = 25;
-  	float Rbins[] = {0,.05,.1,.15,.2,.25,.3,.35,.4,.45,.5,.55,.6,.65,.7,.75,.8,.85,.9,.95,1,1.05,1.1,1.15,1.2,1.25};
+  	int nRbins = 12;
+  	float Rbins[] = {.05,.15,.25,.35,.45,.55,.65,.75,.85,.95,1.05,1.15};
   	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins, Rbins,Nbins,bins);
   	XR->SetXTitle("radius of wider jet");
   	XR->SetYTitle("Xj ratio");
@@ -71,8 +71,8 @@ void FatHist(int filecount){
     std::string selectname = "XjR";
     std::string temp;
     float width;
-    for(int i=1; i<nRbins-3;i++){
-      temp = selectname+std::to_string(i*.05+.05);
+    for(int i=1; i<nRbins;i++){
+      temp = selectname+std::to_string((i-1)*.1+.05);
       rselect= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
       rselect->SetXTitle("Xj ratio");
       rselect->SetYTitle("count");
@@ -93,14 +93,14 @@ void FatHist(int filecount){
 
     delete tc;
     tc = new TCanvas("tc","1D plots", 1700, 1000);
-    tc->Divide(7,3,.005,.01);
+    tc->Divide(4,3,.005,.01);
 
     TLatex lax; 
     for(int i=1; i<nRbins-3;i++){
       tc->cd(i);
       tc->SetGrid();
       lax.SetTextSize(.07);
-      temp = selectname+std::to_string(i*.05+.05);
+      temp = selectname+std::to_string((i-1)*.1+.05);
       lax.SetTextAlign(11);
       lax.DrawLatex(.1,.1,temp.c_str());
       //lax[i-1].PaintLatex(.3,.3,0,.5,temp.c_str());
@@ -113,16 +113,12 @@ void FatHist(int filecount){
       temp = selectname+std::to_string(i)+">>h"+std::to_string(i);
       dijet_tree->Draw(temp.c_str(),"","goff");
       rselect->Sumw2(kTRUE);
-      rselect->Scale(1/rselect->Integral());
+      rselect->Scale(1/rselect->Integral(), "width");
       rselect->SetMarkerStyle(20);
       rselect->SetMarkerColor(kRed);
       rselect->SetLineWidth(3);
       rselect->GetXaxis()->SetLabelSize(.06);
       rselect->GetYaxis()->SetLabelSize(.06);
-      for(int j=0; j<Nbins;j++){
-        width = bins[j+1]-bins[j];
-        rselect->SetBinContent(j+1,rselect->GetBinContent(j+1)/width);
-      }
       rselect->Draw("P");
     }
     printfile = selectname+outfile;
