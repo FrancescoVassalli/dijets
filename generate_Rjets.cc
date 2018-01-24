@@ -296,7 +296,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   else
     pythia.readString("PhaseSpace:pTHatMin = 150.");
   pythia.init();
-  const int nR=25;
+  const int nR=11;
   std::vector<SlowJet*> kT(nR);
   SlowJet *tempjet;
 
@@ -339,7 +339,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     p1.id= pythia.event[5].id();
     p2.id= pythia.event[6].id();*/
     for(int i=0; i<nR; i++){  //make an array of the jets
-    	tempjet= new SlowJet(-1,.05*i, 10,4,2,1);
+    	tempjet= new SlowJet(-1,.1*i, 10,4,2,1);
     	tempjet->analyze(pythia.event);
     	jets[i].resize(tempjet->sizeJet());
     	for(int j=0; j<tempjet->sizeJet();j++){
@@ -377,7 +377,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
        myJets=tempjets;
 //2
     for(int i=0; i<nR;++i){
-       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20;
+       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20*myJets[i].r;
      }
        ipt1 = jetMax1(myJets, &fjets[4],0);
        fR[4] = myJets[ipt1].r;
