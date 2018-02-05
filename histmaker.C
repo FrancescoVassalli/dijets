@@ -58,14 +58,11 @@ void histmaker(int fileN)
     file = " 200.pdf";
   }
   TChain *dijet_tree = new TChain("tree100");
-  std::string filename = filebegin+std::to_string(fileN)+fileend;
-  ifstream fs(filename);
-  while(fs.good()){
+  int filecount = 1;
+  std::string filename = filebegin+std::to_string(filecount)+fileend;
+  while(filecount<=fileN){
     dijet_tree->Add(filename.c_str());
-    fs.close();
-    fs.clear();
-    fs.open(filename);
-    fileN++;
+    filecount++;
     filename = filebegin+std::to_string(fileN)+fileend;
   }
   TLegend *tl=new TLegend(.4,.7,.6,.9);
@@ -125,11 +122,11 @@ void histmaker(int fileN)
       width = bins[j+1]-bins[j];
       h[i]->SetBinContent(j+1,h[i]->GetBinContent(j+1)/width);
     }
-
+    h[i]->SetMarkerStyle(20);
     h[i]->SetLineWidth(3);
   }
-  h[0]->Draw("hist");
-  hAtlas->Draw("same");
+  h[0]->Draw("P");
+  hAtlas->Draw("same P");
   tl->AddEntry(h[0], "Pythia Control","l");
   tl->AddEntry(hAtlas, "Atlas","l");
   temp = "Xj control"+file;
@@ -138,12 +135,12 @@ void histmaker(int fileN)
   tl->Clear("D");
 
 
-  hAtlas->Draw();
-  h[21]->Draw("same hist");
-  h[22]->Draw("same hist");
-  h[23]->Draw("same hist");
-  h[50]->Draw("same hist");
-  h[51]->Draw("same hist");
+  hAtlas->Draw("P");
+  h[21]->Draw("same P");
+  h[22]->Draw("same P");
+  h[23]->Draw("same P");
+  h[50]->Draw("same P");
+  h[51]->Draw("same P");
   hAtlas->SetMaximum(3);
   hAtlas->SetMinimum(0);
   h[22]->SetLineColor(kGreen+2);
@@ -185,8 +182,8 @@ void histmaker(int fileN)
   tc->Clear("D");
   tl->Clear();
 
-  hAtlas->Draw();
-  h[24]->Draw("same hist");
+  hAtlas->Draw("P");
+  h[24]->Draw("same P");
   h[25]->Draw("same hist");
   h[26]->Draw("same hist");
   h[48]->Draw("same hist");
@@ -363,19 +360,6 @@ void histmaker(int fileN)
   h[54]->Draw();
   tl->AddEntry(h[54],"Inerpolation", "l");
   temp = "Interpolation"+file;
-  tc->Print(temp.c_str());
-  tl->Clear("D");
-
-  h[0]->Draw("hist");
-  h[44]->Draw("same hist");
-  h[45]->Draw("same hist");
-  tl->AddEntry(h[0], "control","l");
-  tl->AddEntry(h[44], "quadFat","l");
-  tl->AddEntry(h[45], "linFat","l");
-  h[44]->SetLineColor(kGreen+2);
-  h[45]->SetLineColor(kRed);
-  temp = "fatrate"+file;
-  tl->Draw();
   tc->Print(temp.c_str());
   tl->Clear("D");
 
