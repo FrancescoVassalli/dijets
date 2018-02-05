@@ -1,28 +1,6 @@
 // PYTHIA is licenced under the GNU GPL version 2, see COPYING for details.
 // Please respect the MCnet Guidelines, see GUIDELINES for details
-/*
-Eventually
- time to start looking at b quark and path length
- */
-/* There are currently 6 jet quenching algorithms that select for parton called 1,2,3,A,B,C
-1 = -GAUS(0,20)
-2= -GAUS(10,20)
-3= -GAUS(20,20)
-A = *(1-GAUS(.2,.05))
-B= *(1-GAUS(.2, .1))
-C= *(1-GAUS(.2,.2))
- These algorithms do not select for parton (yet) and are
-4= -GAUS(20, 30)
-5= - GAUS(20,40)
-D = *(1-GAUS(.3,.2))
-E= *(1-GAUS(.1,.2))
-P = Interpolation of decreasing fractional energy loss wrt pT
-   Rate algorithms subtract a set amount of energy per charged particle
-rateA = 1.5
-rateB = 2;
-rateC = 1;
-These are agorlithms are displayed as totals and w.r.t. flavor
-*/
+
 
 #include "Pythia8/Pythia.h"
 using namespace Pythia8;
@@ -449,7 +427,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 }
 /**
 arg#0 = run command
-arg#1 = run state low for lowpT high for highpT
+arg#1 = run state low for lowpT high for highp
 arg#2 = run state o for over write a for append 
 arg#3 = file prefix
 can be run without arguments 
