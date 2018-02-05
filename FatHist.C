@@ -32,7 +32,7 @@ void FatHist(int filecount){
   	if(lowpT) 
   		infile= "Rjet11";
   	else
-  		infile= "Rjet22";
+  		infile= "Rjet20";
   	std::string fileappend = ".root";
   	int printcount=0;
   	std::string filename = infile+std::to_string(printcount)+fileappend;
@@ -45,12 +45,12 @@ void FatHist(int filecount){
     gStyle->SetErrorX(0);
   	dijet_tree->Add(infile.c_str());
 
-  	float bins[] = {.32,.36,.39,.45,.5,.56,.63,.7,.79,.88,1};
+  	Double_t bins[] = {.32,.36,.39,.45,.5,.56,.63,.7,.79,.88,1};
   	const int Nbins = 10;
 
   	int nRbins = 12;
-  	float Rbins[] = {.05,.15,.25,.35,.45,.55,.65,.75,.85,.95,1.05,1.15};
-  	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins, Rbins,Nbins,bins);
+  	Double_t Rbins[] = {.05,.15,.25,.35,.45,.55,.65,.75,.85,.95,1.05,1.15};
+  	TH2F *XR = new TH2F("XR", "Xj wrt radius",nRbins-1,Rbins,Nbins,bins);
   	XR->SetXTitle("radius of wider jet");
   	XR->SetYTitle("Xj ratio");
   	dijet_tree->Draw("Xj:LeadR0>>XR","","goff");
@@ -59,7 +59,30 @@ void FatHist(int filecount){
   	std::string printfile = "XjwrtR"+outfile;
   	tc->Print(printfile.c_str());
 
-  	TH1F *Jr = new TH1F("Jr","radius of wider jet", nRbins,Rbins);
+    std::string selectname = "XjQ";
+    std::string temp;
+
+    int quenchN = 3;
+    TH1F *qH[quenchN];
+    for(int i=0; i<quenchN; i++){
+      temp = selectname+std::to_string(i);
+      qH[i]= new TH1F("qH", temp.c_str(),Nbins,bins);
+      qH[i]->SetXTitle("Xj ratio");
+      qH[i]->SetYTitle("count");
+      temp = temp +">>qH";
+      dijet_tree->Draw(temp.c_str(),"","goff");
+      qH[i]->Sumw2(kTRUE);
+      if(qH[i]->Integral()!=0)
+        qH[i]->Scale(1/qH[i]->Integral(),"width");
+      qH[i]->SetMarkerStyle(20);
+      qH[i]->SetLineWidth(3);
+      qH[i]->Draw("P");
+      printfile = selectname+std::to_string(i)+outfile;
+      tc->Print(printfile.c_str());
+    }
+
+
+  	TH1F *Jr = new TH1F("Jr","radius of wider jet",40,0,1.2);
   	Jr->SetXTitle("radius of wider jet");
   	Jr->SetYTitle("count");
   	dijet_tree->Draw("LeadR0>>Jr","","goff");
@@ -67,59 +90,52 @@ void FatHist(int filecount){
   	printfile = "JetR"+outfile;
   	tc->Print(printfile.c_str());
 
-    TH1F *rselect;
-    std::string selectname = "XjR";
-    std::string temp;
+    TH1F *rselect[nRbins];
+    selectname = "XjR";
     float width;
-    for(int i=1; i<nRbins;i++){
-      temp = selectname+std::to_string((i-1)*.1+.05);
-      rselect= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
-      rselect->SetXTitle("Xj ratio");
-      rselect->SetYTitle("count");
-      temp = selectname+std::to_string(i)+">>h"+std::to_string(i);
+    TH1F *htemp = new TH1F("temp","",Nbins,bins);
+    for(int i=1; i<nRbins-1;i++){
+      temp = selectname+std::to_string(i*.1);
+      rselect[i]= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
+      rselect[i]->SetXTitle("Xj ratio");
+      rselect[i]->SetYTitle("count");
+      temp = selectname+std::to_string(2*i)+">>h"+std::to_string(i);
       dijet_tree->Draw(temp.c_str(),"","goff");
-      rselect->Sumw2(kTRUE);
-      rselect->Scale(1/rselect->Integral());
-      rselect->SetMarkerStyle(20);
-      rselect->SetLineWidth(3);
-      for(int j=0; j<Nbins;j++){
-        width = bins[j+1]-bins[j];
-        rselect->SetBinContent(j+1,rselect->GetBinContent(j+1)/width);
-      }
-      rselect->Draw("P");
+      temp = selectname+std::to_string(2*i+1)+">>temp";
+      dijet_tree->Draw(temp.c_str(),"","goff");
+      rselect[i]->Sumw2(kTRUE);
+      htemp->Sumw2(kTRUE);
+      rselect[i]->Add(htemp,1);
+      if(rselect[i]->Integral()!=0)
+        rselect[i]->Scale(1/rselect[i]->Integral(),"width");
+      rselect[i]->SetMarkerStyle(20);
+      rselect[i]->SetLineWidth(3);
+      rselect[i]->Draw("P");
       printfile = selectname+std::to_string(i)+outfile;
       tc->Print(printfile.c_str());
     }
 
     delete tc;
     tc = new TCanvas("tc","1D plots", 1700, 1000);
-    tc->Divide(4,3,.005,.01);
+    tc->Divide(5,2,.005,.01);
 
     TLatex lax; 
-    for(int i=1; i<nRbins-3;i++){
+    for(int i=1; i<nRbins-1;i++){
       tc->cd(i);
       tc->SetGrid();
       lax.SetTextSize(.07);
-      temp = selectname+std::to_string((i-1)*.1+.05);
+      temp = selectname+std::to_string(i*.1);
       lax.SetTextAlign(11);
       lax.DrawLatex(.1,.1,temp.c_str());
       //lax[i-1].PaintLatex(.3,.3,0,.5,temp.c_str());
       gPad->SetRightMargin(0.01);
       gPad->SetBottomMargin(.2);
       gPad->SetTicky(1);
-      rselect= new TH1F(Form("h%i",i),temp.c_str(),Nbins,bins);
-      rselect->SetTitleSize(.07);
-      rselect->SetXTitle("Xj ratio");
-      temp = selectname+std::to_string(i)+">>h"+std::to_string(i);
-      dijet_tree->Draw(temp.c_str(),"","goff");
-      rselect->Sumw2(kTRUE);
-      rselect->Scale(1/rselect->Integral(), "width");
-      rselect->SetMarkerStyle(20);
-      rselect->SetMarkerColor(kRed);
-      rselect->SetLineWidth(3);
-      rselect->GetXaxis()->SetLabelSize(.06);
-      rselect->GetYaxis()->SetLabelSize(.06);
-      rselect->Draw("P");
+      rselect[i]->SetTitleSize(.07);
+      rselect[i]->SetYTitle("");
+      rselect[i]->GetXaxis()->SetLabelSize(.06);
+      rselect[i]->GetYaxis()->SetLabelSize(.06);
+      rselect[i]->Draw("P");
     }
     printfile = selectname+outfile;
     tc->SaveAs(printfile.c_str());
