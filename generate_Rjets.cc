@@ -86,6 +86,12 @@ float fixXj(float *j1, float *j2, int min){
 	else
 		return j1/j2;
 }
+float fixXj(Jet j1, Jet j2){
+  if(j1.pT>j2.pT)
+    return j2.pT/j1.pT;
+  else
+    return j1.pT/j2.pT;
+}
 
 float delPhi(float phi1, Parton p1){
   float r = TMath::Abs(phi1 - TMath::ATan2(p1.py,p1.px));
@@ -182,6 +188,27 @@ int jetMax1(std::vector<Jet> jets, float* jet, float max){
     }
   }
   return r;
+}
+Jet jetMax1(std::vector<Jet> jets, float max){
+  float *jet=0;
+  int r=-1;
+  if(max==0){
+      for(unsigned i=0; i<jets.size();i++){
+         if(jets[i].pT>*jet){
+         *jet=jets[i].pT;
+         r=i;
+         }
+      }
+  }
+  else{
+    for(unsigned i=0; i<jets.size();i++){
+       if(jets[i].pT >*jet && jets[i].pT<max){
+         *jet=jets[i].pT;
+         r=i;
+       }
+    }
+  }
+  return jets[r];
 }
 
 void jetMax2(int count, int *index, float *jet, float jet_a[], float jet_max, int min){
@@ -357,6 +384,13 @@ inline void printJets(std::vector<Jet> v, std::string title){
   std::cout<<std::endl;
 }
 
+void fillXjs(int i, XjT* Xjs, std::vector<Jet> myJets){
+  Jet jettemp1 =jetMax1(myJets,0);
+  Jet jettemp2 =jetMax1(myJets,jettemp1.pT);
+  Xjs[i].Xj = fixXj(jettemp1,jettemp2);
+  Xjs[i].r = maxFloat(jettemp1.r,jettemp2.r);
+}
+
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
   TFile* f = new TFile(filename.c_str(),"RECREATE");
   TTree* t=new TTree("tree100","events");
@@ -401,10 +435,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 */
   float eventRadius;
   float eventRatio;
-  const int nfjets=nXj*2;
-  float fjets[nfjets];
-  int ipt1=0;
-  float fR[nfjets];
   std::vector<Jet> jets;
   std::vector<Jet> myJets;
   std::vector<Jet> fats;
@@ -493,42 +523,23 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     jetFilter(&myJets,fitNUM,fitMAX);
    	tempjets=myJets;
 //0
-    ipt1=jetMax1(myJets,&fjets[0],0); //1
-    fR[0] = myJets[ipt1].r;
-    if(fR[0]>0.051)
-      std::cout<<"radius: "<<fR[0]<<"\n";
-    ipt1=jetMax1(myJets,&fjets[1],fjets[0]);
-    fR[1] = myJets[ipt1].r;
+    fillXjs(0,&Xjs[0],myJets);
 //1
     
     for(unsigned i=0; i<myJets.size();++i){
       myJets[i].pT=myJets[i].pT-randomPositive(15,10)/(1-TMath::Power((1-((myJets[i].r*myJets[i].r)/(1.1*1.1))),.5));
      }
-    ipt1 = jetMax1(myJets, &fjets[2],0);
-    fR[2] = myJets[ipt1].r;
-    ipt1= jetMax1(myJets, &fjets[3],fjets[2]);
-    fR[3] = myJets[ipt1].r;
+    fillXjs(1,&Xjs[0],myJets);
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
 //2
-    
     for(unsigned i=0; i<myJets.size();++i){
        myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20*myJets[i].r;
      }
-    ipt1 = jetMax1(myJets, &fjets[4],0);
-    fR[4] = myJets[ipt1].r;
-    ipt1= jetMax1(myJets, &fjets[5],fjets[4]);
-    fR[5] = myJets[ipt1].r;
+    fillXjs(2,&Xjs[0],myJets);
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
-//out
-      
-    for(int i=0; i<preN; i++){
-      Xjs[i].Xj = fixXj(fjets[2*i+1],fjets[2*i]); // change Xjs to vector
-      //Xjs[i].type = eventType[i];
-      Xjs[i].r = maxFloat(fR[2*i+1],fR[2*i]);
-      
-    }
+
     /*eventRadius = maxFloat(fR[0],fR[1]);  // does the by radius data colelction nR may be buggy so not using until needed
     for(int i=preN; i<nR;i++){
     	Xjs[i].r =minR+step*(i-preN-1);
