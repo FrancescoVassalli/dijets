@@ -17,7 +17,8 @@ using namespace Pythia8;
 Double_t E= 2.71828182845904523536;
 
 struct Jet{
-  float pT, phi, y ,r;
+  float pT, phi, y;
+  float r=-1;
   float fatratio=0;
   int mult;
 };
@@ -381,12 +382,13 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   const float step =.05;
   const float minR = .05;
   const int nR=24;
-  SlowJet *tempjet=NULL;
+  std::vector<SlowJet*> tempjet(2);
+  int tempjetcounter;
   
   const short preN =3;
   const int nXj = preN+nR;
   XjT Xjs[nXj];
-  t->Branch("Xj", &Xjs[0].Xj); // test if branches are out of bounds TBranch is seg faulting
+  t->Branch("Xj", &Xjs[0].Xj); 
   t->Branch("XjQ0", &Xjs[1].Xj);
   t->Branch("XjQ1", &Xjs[2].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
@@ -398,7 +400,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   }
 */
   float eventRadius;
-  float eventRatio=0;
+  float eventRatio;
   const int nfjets=nXj*2;
   float fjets[nfjets];
   int ipt1=0;
@@ -440,59 +442,52 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     	}
     	delete tempjet;
     }*/
-    tempjet = new SlowJet(-1,1,10,4,2,1);  //set up the comparison jets
-    tempjet->analyze(pythia.event);
-    fats.resize(tempjet->sizeJet());
+    tempjet[0] = new SlowJet(-1,1,10,4,2,1);  //set up the comparison jets
+    tempjet[0]->analyze(pythia.event);
+    fats.resize(tempjet[0]->sizeJet());
     for(unsigned i=0; i<fats.size(); i++){
-      fats[i].pT = tempjet->pT(i);
-      fats[i].y= tempjet->y(i);
-      fats[i].phi= tempjet->phi(i);
-      fats[i].mult= tempjet->multiplicity(i);
+      fats[i].pT = tempjet[0]->pT(i);
+      fats[i].y= tempjet[0]->y(i);
+      fats[i].phi= tempjet[0]->phi(i);
+      fats[i].mult= tempjet[0]->multiplicity(i);
       fats[i].r = 1;
     }
-    delete tempjet;
-    tempjet=NULL;
 
-    tempjet= new SlowJet(-1,minR,10,4,2,1); // set up the smallest jets 
+    tempjet[1]= new SlowJet(-1,minR,10,4,2,1); // set up the smallest jets 
     jetfindcounter=1;
-    tempjet->analyze(pythia.event);
-    myJets.resize(tempjet->sizeJet());
+    tempjet[1]->analyze(pythia.event);
+    myJets.resize(tempjet[1]->sizeJet());
     for(unsigned i=0; i<jets.size(); i++){
-      myJets[i].pT = tempjet->pT(i);
-      myJets[i].y= tempjet->y(i);
-      myJets[i].phi= tempjet->phi(i);
-      myJets[i].mult= tempjet->multiplicity(i);
+      myJets[i].pT = tempjet[1]->pT(i);
+      myJets[i].y= tempjet[1]->y(i);
+      myJets[i].phi= tempjet[1]->phi(i);
+      myJets[i].mult= tempjet[1]->multiplicity(i);
       myJets[i].r = minR;
     }
-    delete tempjet;
-    tempjet=NULL;
+
     eventRatio=0;
+    tempjetcounter=1;
     while(eventRatio<.9&&jetfindcounter<=19){
-      tempjet = new SlowJet(-1,step*jetfindcounter+minR,10,4,2,1);
+      tempjetcounter++;
+      tempjet.push_back( new SlowJet(-1,step*jetfindcounter+minR,10,4,2,1) );
       jetfindcounter++;
-      tempjet->analyze(pythia.event);
-      if (tempjet->sizeJet()>0&&myJets.size()>0)
+      tempjet[tempjetcounter]->analyze(pythia.event);/*
+      if (tempjet[tempjetcounter]->sizeJet()>0&&myJets.size()>0)
       {
-        jets.resize(tempjet->sizeJet());
+        jets.resize(tempjet[tempjetcounter]->sizeJet());
         for(unsigned i=0; i<jets.size(); i++){
-          jets[i].pT = tempjet->pT(i);
-          jets[i].y= tempjet->y(i);
-          jets[i].phi= tempjet->phi(i);
-          jets[i].mult= tempjet->multiplicity(i);
+          jets[i].pT = tempjet[tempjetcounter]->pT(i);
+          jets[i].y= tempjet[tempjetcounter]->y(i);
+          jets[i].phi= tempjet[tempjetcounter]->phi(i);
+          jets[i].mult= tempjet[tempjetcounter]->multiplicity(i);
           jets[i].r = step*jetfindcounter+minR;
         }
-        delete tempjet;
-        tempjet=NULL;
-        //printJets(fats,"fats");
+        //printJets(fats,"fats");*/
         myJets = fillJets(myJets,jets);
         //printJets(myJets,"mjets2");
         eventRatio = findRatio(myJets,fats);
-      }
-      std::cout<<"Event ratio: "<<eventRatio<<std::endl;
-      if(tempjet!=NULL){
-        delete tempjet;
-        tempjet=NULL;
-      }
+     //}
+      std::cout<<"Event ratio: "<<eventRatio<<"\n";
     }
 
     jetFilter(&myJets,fitNUM,fitMAX);
