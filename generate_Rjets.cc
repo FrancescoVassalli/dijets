@@ -39,6 +39,7 @@ float maxFloat(float, float);
 void printJets(std::vector<Jet>);
 void printJets(std::vector<Jet>,std::string);
 bool nullJets(std::vector<Jet> v);
+bool jetEquality(Jet j1, Jet j2);
 
 float randomPositive(double mean, double sig){
   float r = gRandom->Gaus(mean, sig);
@@ -327,6 +328,7 @@ std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
   if(!nullJets(myJets)){
     std::vector<float> dR(Tjets.size());
     int mindex;
+    bool contains=false;
     for(unsigned i=0; i<myJets.size(); i++){
       if(myJets[i].fatratio<.9){ //if jet does not have enough energy
       // std::cout<<"delR: ";
@@ -335,17 +337,28 @@ std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
         // std::cout<<dR[j]<<" ";
          //std::cout<<"loop if for"<<std::endl;
        }
-       mindex = minimum(dR);/*
-       std::cout<<"min: "<<mindex<<std::endl;
-       out[i].pT = Tjets[mindex].pT;
-       out[i].y = Tjets[mindex].y;
-       out[i].phi =Tjets[mindex].phi;
-       out[i].mult = Tjets[mindex].mult;*/
-       out.push_back(Tjets[mindex]);
+      mindex = minimum(dR);
+      unsigned myjetdupcount=0;
+      contains=false;/*
+      while(!contains&&myjetdupcount<myJets.size()){
+        contains=jetEquality(Tjets[mindex],myJets[myjetdupcount]); //some of these jets need to go to the out
+
+        myjetdupcount++;
+      }*/
+      //turning the above loop off might be an mistake
+      myjetdupcount=0;
+      while(!contains&&myjetdupcount<out.size()){
+        contains=jetEquality(Tjets[mindex],out[myjetdupcount]);
+        myjetdupcount++;
+      }
+      if(!contains){
+        out.push_back(Tjets[mindex]);
+      }
       //std::cout<<"\n";
       }
       else{
-        out.push_back(myJets[i]);
+        out.push_back(myJets[i]); // this else might be bad now
+        //need to make sure that the other jets we find are not in this jet's Fat jet
       }
     }
   }
@@ -366,8 +379,9 @@ bool jetEquality(Jet j1, Jet j2){ //really should have used classes
   assert(j1.phi<7);
   assert(j2.phi<7);
   bool r=false;
-  if (j1.pT==j2.pT&&j1.phi==j2.phi)
-  {
+ // cout<<"eq pt1: "<<j1.pT<<" pt2: "<<j2.pT<<std::endl;
+  if (j1.pT==j2.pT&&j1.phi==j2.phi){
+    //cout<<"jets equal"<<std::endl;
     r=true;
   }
   return r;
@@ -375,15 +389,22 @@ bool jetEquality(Jet j1, Jet j2){ //really should have used classes
 
 std::vector<Jet> removeDuplicate(std::vector<Jet> in){
   std::vector<Jet> v(0);
+  bool contains=false;
   for(unsigned i=0; i<in.size();i++){
-    if (in[i])
-    {
-      /* code */
+    contains=false;
+    for (unsigned j = 0; j < v.size(); ++j){
+      contains = jetEquality(in[i],v[j]);
+      if(contains){
+        break;
+      }
+    }
+    if(!contains){
+      v.push_back(in[i]);
     }
   }
 }
 
-std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){
+std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){ //only the leading jet needs to be above 100 so this is wrong
   std::vector<Jet> v(0);
   for(unsigned i=0; i<jets.size();i++){
     if (jets[i].pT>fitNUM&&jets[i].pT<fitMAX)
@@ -543,6 +564,10 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       jettemp1.r = 1;
       fats.push_back(jettemp1);
     }
+    jetFilter(fats,fitNUM,fitMAX);
+    if(fats.size()<=1){
+      continue;
+    }
 
     tempjet.push_back(new SlowJet(-1,minR,10,4,2,1)); // set up the smallest jets 
     jetfindcounter=1;
@@ -617,6 +642,9 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     }
     printJets(myJets,"before filter");
     myJets =jetFilter(myJets,fitNUM,fitMAX);
+    if(myJets.size()<=1){
+      continue;
+    }
     printJets(myJets,"after filter");
    	tempjets=myJets;
 //0
