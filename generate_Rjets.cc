@@ -268,21 +268,16 @@ int minimum(std::vector<float> v){
 jet->size() msut be greater than 0
 */
 std::vector<Jet> makeFatRatio (std::vector<Jet> jet, std::vector<Jet> fat){ // what if jet->size is zero
+  assert(fat.size()>1);
   std::vector<Jet> out(jet.size());
   std::vector<float> dR(fat.size());
   int mindex =-1;
   for(unsigned i=0; i<jet.size();i++){  
     for(unsigned j=0; j<fat.size();j++){  // find the differnce in radius between the current jet and all the larger jets
       dR[j] = delR(jet[i],fat[j]);
-    }
-    if(fat.size()>0){  //if there are bigger jets 
-      mindex = minimum(dR); // locate the large jet in the same direction as the current jet
-      jet[i].fatratio = jet[i].pT/fat[mindex].pT; // set their fat ratio
-    }
-    else{
-      out[i].fatratio = 1;
-      std::cout<<"Fat Size Warning"<<std::endl;
-    }
+    } 
+    mindex = minimum(dR); // locate the large jet in the same direction as the current jet
+    jet[i].fatratio = jet[i].pT/fat[mindex].pT; // set their fat ratio
  	  out[i].pT =jet[i].pT; //load the current jet into the out table
  	  out[i].y = jet[i].y;
  	  out[i].phi = jet[i].phi;
@@ -302,25 +297,18 @@ void setJetData(int index, float* phi, float* y, float jet_phi[], float jet_y[])
 }
 
 float findRatio(std::vector<Jet> jets, std::vector<Jet> fats){
-  float minR=-1;
+  Jet temp;
+  temp.pT=0;
   std::vector<Jet> tempout;
   tempout = makeFatRatio(jets,fats);
+  assert(tempout.size()>0);
   for(unsigned i=0; i<tempout.size(); i++){
-    if(minR<0||tempout[i].fatratio<minR)
-      minR = tempout[i].fatratio;
+    if(tempout[i].pT>temp.pT){
+      temp.fatratio = tempout[i].fatratio;
+      temp.pT=tempout[i].pT;
+    }
   }
-  /*
-	for(int i=0; i<nR-1; i++){
-		tempout= makeFatRatio(&jets[i],&jets[i+1]);
-		for(unsigned j=0; j<tempout.size();j++){
-			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
-				tempout[j].r=i*step+minR;
-				//cout<<tempout[j].pT<<'\n';
-				out.push_back(tempout[j]);
-			}
-		}
-	}*/
-	return minR;
+	return temp.fatratio;
 }
 
 std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
@@ -404,15 +392,25 @@ std::vector<Jet> removeDuplicate(std::vector<Jet> in){
   }
 }
 
-std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){ //only the leading jet needs to be above 100 so this is wrong
+std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){ 
   std::vector<Jet> v(0);
+  bool pass= false;
   for(unsigned i=0; i<jets.size();i++){
-    if (jets[i].pT>fitNUM&&jets[i].pT<fitMAX)
+    if (!pass&&jets[i].pT>fitNUM&&jets[i].pT<fitMAX)
     {
+      pass=true;
+    }
+    if(jets[i].pT<fitMAX&&jets[i].pT>25){
       v.push_back(jets[i]);
     }
   }
-  return v;
+  if(!pass){
+    std::vector<Jet> no(0);
+    return no;
+  }
+  else{
+    return v;
+  }
 }
 inline bool nullJets(std::vector<Jet> v){
   bool r = true;
@@ -554,7 +552,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     clear(&myJets);
     clear(&fats);
     clear(&jets);
-    tempjet.push_back( new SlowJet(-1,1,10,4,2,1));  //set up the comparison jets
+    tempjet.push_back( new SlowJet(-1,1.5,10,4,2,1));  //set up the comparison jets
     tempjet[0]->analyze(pythia.event);
     for(int i=0; i<tempjet[0]->sizeJet(); i++){
       jettemp1.pT = (float) tempjet[0]->pT(i);
@@ -565,6 +563,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       fats.push_back(jettemp1);
     }
     jetFilter(fats,fitNUM,fitMAX);
+    printJets(fats, "filtered fat");
     if(fats.size()<=1){
       continue;
     }
