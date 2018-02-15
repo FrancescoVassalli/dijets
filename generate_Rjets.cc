@@ -17,7 +17,9 @@ using namespace Pythia8;
 Double_t E= 2.71828182845904523536;
 
 struct Jet{
-  float pT, phi, y;
+  float pT =-1;
+  float phi =7;
+  float y;
   float r=-1;
   float fatratio=0;
   int mult;
@@ -189,26 +191,39 @@ int jetMax1(std::vector<Jet> jets, float* jet, float max){
   }
   return r;
 }
+/* finds the highest pT jet from a group of jets with pT less than max*/
 Jet jetMax1(std::vector<Jet> jets, float max){
-  float *jet=0;
-  int r=-1;
-  if(max==0){
-      for(unsigned i=0; i<jets.size();i++){
-         if(jets[i].pT>*jet){
-         *jet=jets[i].pT;
-         r=i;
-         }
+  if(jets.size()>0){
+    Jet *r = new Jet();
+    r->pT=0;
+    if(max=0){
+      for(unsigned i=0; i<jets.size(); i++){
+        if(jets[i].pT>r->pT)
+          r->pT=jets[i].pT;
+          r->phi = jets[i].phi;
+          r->y= jets[i].y;
+          r->r= jets[i].r;
+          r->fatratio=jets[i].fatratio;
+          r->mult =jets[i].mult;
       }
+    }
+    else{
+      for(unsigned i=0; i<jets.size();i++){
+        if(jets[i].pT > (*r).pT &&jets[i].pT<max)
+          r->phi = jets[i].phi;
+          r->y= jets[i].y;
+          r->r= jets[i].r;
+          r->fatratio=jets[i].fatratio;
+          r->mult =jets[i].mult;
+          r->pT= jets[i].pT;
+      }
+    }
+    return *r;
   }
   else{
-    for(unsigned i=0; i<jets.size();i++){
-       if(jets[i].pT >*jet && jets[i].pT<max){
-         *jet=jets[i].pT;
-         r=i;
-       }
-    }
+    cout<<"invalid size in function: Jet jetmax1(std::vector<float> v)"<<std::endl;
+    throw std::invalid_argument("invalid array length");
   }
-  return jets[r];
 }
 
 void jetMax2(int count, int *index, float *jet, float jet_a[], float jet_max, int min){
@@ -289,7 +304,6 @@ float findRatio(std::vector<Jet> jets, std::vector<Jet> fats){
   float minR=-1;
   std::vector<Jet> tempout;
   tempout = makeFatRatio(jets,fats);
-  std::cout<<tempout.size()<<std::endl;
   for(unsigned i=0; i<tempout.size(); i++){
     if(minR<0||tempout[i].fatratio<minR)
       minR = tempout[i].fatratio;
@@ -314,9 +328,9 @@ std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
     std::vector<float> dR(Tjets.size());
     int mindex;
     for(unsigned i=0; i<myJets.size(); i++){
-     if(myJets[i].fatratio<.9){
+      if(myJets[i].fatratio<.9){ //if jet does not have enough energy
       // std::cout<<"delR: ";
-       for(unsigned j=0; j<Tjets.size();j++){
+       for(unsigned j=0; j<Tjets.size();j++){  //find corresponding higher jet
          dR[j] = delR(myJets[i],Tjets[j]);
         // std::cout<<dR[j]<<" ";
          //std::cout<<"loop if for"<<std::endl;
@@ -336,16 +350,48 @@ std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
     }
   }
   else{
-    out=Tjets;
+    if(!nullJets(Tjets))
+      out=Tjets;
+    else{
+      cout<<"invalid input in function filljets"<<std::endl;
+      throw std::invalid_argument("too many nullJets");
+    }
   }
   return out;
 }
 
-void jetFilter(std::vector<Jet> *jets, int fitNUM, int fitMAX){
-	for(unsigned i=0;i<jets->size();i++){
-		if((*jets)[i].pT<fitNUM||(*jets)[i].pT>fitMAX)
-			jets->erase(jets->begin()+i);
-	}
+bool jetEquality(Jet j1, Jet j2){ //really should have used classes 
+  assert(j1.pT>=0); //dont check unitialized values
+  assert(j2.pT>=0);
+  assert(j1.phi<7);
+  assert(j2.phi<7);
+  bool r=false;
+  if (j1.pT==j2.pT&&j1.phi==j2.phi)
+  {
+    r=true;
+  }
+  return r;
+}
+
+std::vector<Jet> removeDuplicate(std::vector<Jet> in){
+  std::vector<Jet> v(0);
+  for(unsigned i=0; i<in.size();i++){
+    if (in[i])
+    {
+      /* code */
+    }
+  }
+}
+
+std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){
+  std::vector<Jet> v(0);
+  for(unsigned i=0; i<jets.size();i++){
+    if (jets[i].pT>fitNUM&&jets[i].pT<fitMAX)
+    {
+      v.push_back(jets[i]);
+    }
+  }
+  return v;
 }
 inline bool nullJets(std::vector<Jet> v){
   bool r = true;
@@ -383,10 +429,21 @@ inline void printJets(std::vector<Jet> v, std::string title){
   }
   std::cout<<std::endl;
 }
+void clear(std::vector<Jet>* v){
+  while(!v->empty()){
+    v->pop_back();
+  }
+}
 
 void fillXjs(int i, XjT* Xjs, std::vector<Jet> myJets){
+  printJets(myJets,"filling Xj");
+  assert(myJets.size()>1);
   Jet jettemp1 =jetMax1(myJets,0);
+  assert(jettemp1.pT!=0);
+  cout<<&jettemp1<<": "<<jettemp1.pT;
   Jet jettemp2 =jetMax1(myJets,jettemp1.pT);
+  cout<<" "<<&jettemp2<<": "<<jettemp2.pT;
+  assert(jettemp1.pT!=0&&jettemp2.pT!=0);
   Xjs[i].Xj = fixXj(jettemp1,jettemp2);
   Xjs[i].r = maxFloat(jettemp1.r,jettemp2.r);
 }
@@ -415,12 +472,13 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
   const float step =.05;
   const float minR = .05;
-  const int nR=24;
-  std::vector<SlowJet*> tempjet(2);
+  const int nR=24;  //nR is bad and creates bugs it needs to be removed use vectors instead
+  std::vector<SlowJet*> tempjet(0);
+  SlowJet* deltemp = NULL;
   int tempjetcounter;
-  
+  Jet jettemp1;
   const short preN =3;
-  const int nXj = preN+nR;
+  const int nXj = 3;
   XjT Xjs[nXj];
   t->Branch("Xj", &Xjs[0].Xj); 
   t->Branch("XjQ0", &Xjs[1].Xj);
@@ -472,71 +530,111 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     	}
     	delete tempjet;
     }*/
-    tempjet[0] = new SlowJet(-1,1,10,4,2,1);  //set up the comparison jets
+    clear(&myJets);
+    clear(&fats);
+    clear(&jets);
+    tempjet.push_back( new SlowJet(-1,1,10,4,2,1));  //set up the comparison jets
     tempjet[0]->analyze(pythia.event);
-    fats.resize(tempjet[0]->sizeJet());
-    for(unsigned i=0; i<fats.size(); i++){
-      fats[i].pT = tempjet[0]->pT(i);
-      fats[i].y= tempjet[0]->y(i);
-      fats[i].phi= tempjet[0]->phi(i);
-      fats[i].mult= tempjet[0]->multiplicity(i);
-      fats[i].r = 1;
+    for(int i=0; i<tempjet[0]->sizeJet(); i++){
+      jettemp1.pT = (float) tempjet[0]->pT(i);
+      jettemp1.y= (float) tempjet[0]->y(i);
+      jettemp1.phi= (float) tempjet[0]->phi(i);
+      jettemp1.mult= (float) tempjet[0]->multiplicity(i);
+      jettemp1.r = 1;
+      fats.push_back(jettemp1);
     }
 
-    tempjet[1]= new SlowJet(-1,minR,10,4,2,1); // set up the smallest jets 
+    tempjet.push_back(new SlowJet(-1,minR,10,4,2,1)); // set up the smallest jets 
     jetfindcounter=1;
     tempjet[1]->analyze(pythia.event);
-    myJets.resize(tempjet[1]->sizeJet());
-    for(unsigned i=0; i<jets.size(); i++){
-      myJets[i].pT = tempjet[1]->pT(i);
-      myJets[i].y= tempjet[1]->y(i);
-      myJets[i].phi= tempjet[1]->phi(i);
-      myJets[i].mult= tempjet[1]->multiplicity(i);
-      myJets[i].r = minR;
+    for(int i=0; i<tempjet[1]->sizeJet(); i++){
+      jettemp1.pT = (float)tempjet[1]->pT(i);
+      jettemp1.y= (float)tempjet[1]->y(i);
+      jettemp1.phi= (float)tempjet[1]->phi(i);
+      jettemp1.mult= (float)tempjet[1]->multiplicity(i);
+      jettemp1.r = minR;
+      myJets.push_back(jettemp1);
     }
 
     eventRatio=0;
     tempjetcounter=1;
     while(eventRatio<.9&&jetfindcounter<=19){
       tempjetcounter++;
-      tempjet.push_back( new SlowJet(-1,step*jetfindcounter+minR,10,4,2,1) );
+      tempjet.push_back(new SlowJet(-1,step*jetfindcounter+minR,10,4,2,1) );
       jetfindcounter++;
-      tempjet[tempjetcounter]->analyze(pythia.event);/*
-      if (tempjet[tempjetcounter]->sizeJet()>0&&myJets.size()>0)
+      assert(tempjetcounter<tempjet.size());
+      assert(tempjet[tempjetcounter]!=NULL);
+      tempjet[tempjetcounter]->analyze(pythia.event);
+      /*for(int i=0; i<tempjet.size(); i++){
+        cout<<tempjet[i]<<": "<<tempjet[i]->sizeJet()<<"\n";
+      }*/
+      if (tempjet[tempjetcounter]->sizeJet()>1)
       {
-        jets.resize(tempjet[tempjetcounter]->sizeJet());
-        for(unsigned i=0; i<jets.size(); i++){
-          jets[i].pT = tempjet[tempjetcounter]->pT(i);
-          jets[i].y= tempjet[tempjetcounter]->y(i);
-          jets[i].phi= tempjet[tempjetcounter]->phi(i);
-          jets[i].mult= tempjet[tempjetcounter]->multiplicity(i);
-          jets[i].r = step*jetfindcounter+minR;
+        clear(&jets);
+        for(int i=0; i<tempjet[tempjetcounter]->sizeJet(); i++){
+          jettemp1.pT = (float) tempjet[tempjetcounter]->pT(i);
+          jettemp1.y= (float) tempjet[tempjetcounter]->y(i);
+          jettemp1.phi= (float) tempjet[tempjetcounter]->phi(i);
+          jettemp1.mult= (float) tempjet[tempjetcounter]->multiplicity(i);
+          jettemp1.r = (float) step*jetfindcounter+minR;
+          jets.push_back(jettemp1);
         }
-        //printJets(fats,"fats");*/
-        myJets = fillJets(myJets,jets);
+        if(myJets.size()>1){
+          printJets(myJets,"myJets before fill");
+          printJets(jets,"new jets");
+          myJets = fillJets(myJets,jets);
+          printJets(myJets, "post fill");
+          /*
+          cout<<"myJets: \n";
+          for(unsigned i=0; i<myJets.size(); i++){
+          cout<<&myJets[i]<<": "<<myJets[i].pT<<", "<<myJets[i].r<<"\n";
+          }
+          cout<<"new jets: \n";
+          for(unsigned i=0; i<jets.size(); i++){
+            cout<<&jets[i]<<": "<<jets[i].pT<<", "<<jets[i].r<<"\n";
+          }*/
         //printJets(myJets,"mjets2");
-        eventRatio = findRatio(myJets,fats);
-     //}
+          eventRatio = findRatio(myJets,fats);
+        }
+        else{
+          myJets=jets;
+        }
+     }
+     else{
+      deltemp = tempjet.back();
+      tempjet.pop_back();
+      delete deltemp;
+      deltemp=NULL;
+      tempjetcounter--;
+     }
       std::cout<<"Event ratio: "<<eventRatio<<"\n";
     }
-
-    jetFilter(&myJets,fitNUM,fitMAX);
+    while(!tempjet.empty()){
+      deltemp = tempjet.back();
+      tempjet.pop_back();
+      delete deltemp;
+      deltemp=NULL;
+    }
+    printJets(myJets,"before filter");
+    myJets =jetFilter(myJets,fitNUM,fitMAX);
+    printJets(myJets,"after filter");
    	tempjets=myJets;
 //0
     fillXjs(0,&Xjs[0],myJets);
+    cout<<"Xj: "<<Xjs[0].Xj<<"\n";
 //1
     
     for(unsigned i=0; i<myJets.size();++i){
       myJets[i].pT=myJets[i].pT-randomPositive(15,10)/(1-TMath::Power((1-((myJets[i].r*myJets[i].r)/(1.1*1.1))),.5));
      }
-    fillXjs(1,&Xjs[0],myJets);
+    fillXjs(1,&Xjs[1],myJets);
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
 //2
     for(unsigned i=0; i<myJets.size();++i){
        myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20*myJets[i].r;
      }
-    fillXjs(2,&Xjs[0],myJets);
+    fillXjs(2,&Xjs[2],myJets);
        //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
 
