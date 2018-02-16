@@ -281,17 +281,6 @@ float findRatio(std::vector<Jet> jets, std::vector<Jet> fats){
     if(minR<0||tempout[i].fatratio<minR)
       minR = tempout[i].fatratio;
   }
-  /*
-	for(int i=0; i<nR-1; i++){
-		tempout= makeFatRatio(&jets[i],&jets[i+1]);
-		for(unsigned j=0; j<tempout.size();j++){
-			if((tempout[j].fatratio>.9||i==nR-2)&&tempout[j].pT>0){
-				tempout[j].r=i*step+minR;
-				//cout<<tempout[j].pT<<'\n';
-				out.push_back(tempout[j]);
-			}
-		}
-	}*/
 	return minR;
 }
 
@@ -499,33 +488,21 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
   const float step =.05;
   const float minR = .05;
-  const int nR=24;  //nR is bad and creates bugs it needs to be removed use vectors instead
   std::vector<SlowJet*> tempjet(0);
   SlowJet* deltemp = NULL;
   int tempjetcounter;
   Jet jettemp1;
-  const short preN =3;
   const int nXj = 3;
   XjT Xjs[nXj];
   t->Branch("Xj", &Xjs[0].Xj); 
   t->Branch("XjQ0", &Xjs[1].Xj);
   t->Branch("XjQ1", &Xjs[2].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
-  std::string branchname = "XjR";
-  std::string stringtemp;
-  /*for(int i=0; i<nR;i++){
-  	stringtemp = branchname+std::to_string(i);
-  	t->Branch(stringtemp.c_str(),&Xjs[preN+i].Xj);
-  }
-*/
-  float eventRadius;
-  float eventRatio;
   std::vector<Jet> jets;
   std::vector<Jet> myJets;
   std::vector<Jet> fats;
   std::vector<Jet> tempjets;
-  //Parton p1; Parton p2;
-  int jetfindcounter=0;
+
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
   	if(iEvent%30==0)  
   		cout<<"Event N: "<<iEvent<<'\n';
@@ -534,29 +511,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       continue;
     }
     //std::cout<<"event loop"<<iEvent<<'\n';
-   /* p1.px = pythia.event[5].px(); //old code for parton typing
-    p1.py=pythia.event[5].py();
-    p1.eta = pythia.event[5].eta();
-    p2.eta = pythia.event[6].eta();
-    p2.px=pythia.event[6].px();
-    p2.py=pythia.event[6].py();
-    p1.id= pythia.event[5].id();
-    p2.id= pythia.event[6].id();*/
-    /*
-    
-    for(int i=0; i<nR; i++){  //old code to make an array of the jets
-    	tempjet= new SlowJet(-1,step*i+minR, 10,4,2,1); 
-    	tempjet->analyze(pythia.event);
-    	jets[i].resize(tempjet->sizeJet());
-    	for(int j=0; j<tempjet->sizeJet();j++){
-    		jets[i][j].pT= tempjet->pT(i);
-    		//cout<<tempjet->pT(i)<<'\n';
-    		jets[i][j].y= tempjet->y(i);
-    		jets[i][j].phi= tempjet->phi(i);
-    		jets[i][j].mult= tempjet->multiplicity(i);
-    	}
-    	delete tempjet;
-    }*/
+
     clear(&myJets);
     clear(&fats);
     clear(&jets);
@@ -663,14 +618,12 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       myJets[i].pT=myJets[i].pT-randomPositive(15,10)/(1-TMath::Power((1-((myJets[i].r*myJets[i].r)/(1.1*1.1))),.5));
      }
     fillXjs(1,&Xjs[1],myJets);
-       //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
 //2
     for(unsigned i=0; i<myJets.size();++i){
        myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20*myJets[i].r;
      }
     fillXjs(2,&Xjs[2],myJets);
-       //eventType[iAlag++] = eType(&p1,&p2,myJets[ipt1].phi,myJets[ipt1].y);
     myJets=tempjets;
 
     /*eventRadius = maxFloat(fR[0],fR[1]);  // does the by radius data colelction nR may be buggy so not using until needed
@@ -679,20 +632,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     	Xjs[i].Xj=0;
     	if(Xjs[i].r==eventRadius)
     		Xjs[i].Xj=Xjs[0].Xj;
-    }*/
-   /* switch(Xjs[1].type){
-    case 1:
-       QQ1 = Xjs[1].Xj;
-       break;
-    case 2:
-       QG1 = Xjs[1].Xj;
-       break;
-    case 3:
-       GQ1 = Xjs[1].Xj;
-       break;
-    case 4:
-       GG1 = Xjs[1].Xj;
-       break;
     }*/
 
     t->Fill();
