@@ -498,6 +498,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   t->Branch("XjQ0", &Xjs[1].Xj);
   t->Branch("XjQ1", &Xjs[2].Xj);
   t->Branch("LeadR0",&Xjs[0].r);
+  float eventRatio=0;
+  short jetfindcounter=0;
   std::vector<Jet> jets;
   std::vector<Jet> myJets;
   std::vector<Jet> fats;
