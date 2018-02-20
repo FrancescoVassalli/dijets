@@ -564,6 +564,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     clear(&myJets);
     clear(&fats);
     clear(&jets);
+    for (int i = 0; i < nXj; ++i)
+    {
+      Xjs[i].Xj=0;
+      Xjs[i].r=0;
+    }
     tempjet.push_back( new SlowJet(-1,1,10,4,2,1));  //set up the comparison jets
     tempjet[0]->analyze(pythia.event);
     for(int i=0; i<tempjet[0]->sizeJet(); i++){
@@ -623,16 +628,6 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
           myJets = fillJets(myJets,jets);
           printJets(myJets, "post fill");
           printJets(fats,"fats");
-          /*
-          cout<<"myJets: \n";
-          for(unsigned i=0; i<myJets.size(); i++){
-          cout<<&myJets[i]<<": "<<myJets[i].pT<<", "<<myJets[i].r<<"\n";
-          }
-          cout<<"new jets: \n";
-          for(unsigned i=0; i<jets.size(); i++){
-            cout<<&jets[i]<<": "<<jets[i].pT<<", "<<jets[i].r<<"\n";
-          }*/
-        //printJets(myJets,"mjets2");
         }
         else{
           myJets=jets;
@@ -669,18 +664,24 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     
     for(unsigned i=0; i<myJets.size();++i){ 
       myJets[i].pT=myJets[i].pT * TMath::Power(E,-1*randomPositive(2,1)*myJets[i].r*myJets[i].r);
-     }
-    printJets(myJets,"fill 2");
-    fillXjs(&Xjs[1],myJets);
+    }
+    myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
+    if(myJets.size()>1){
+      printJets(myJets,"fill 2");
+      fillXjs(&Xjs[1],myJets);
+    }
     myJets=tempjets;
 //2   cuts are making negative numbers
     
     for(unsigned i=0; i<myJets.size();++i){
-       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*myJets[i].r;
+       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*10*myJets[i].r;
        cout<<"3r: "<<myJets[i].r<<" ";
     }
-    printJets(myJets,"fill 3");
-    fillXjs(&Xjs[2],myJets);
+    myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
+    if(myJets.size()>1){
+      printJets(myJets,"fill 3");
+      fillXjs(&Xjs[2],myJets);
+    }
     myJets=tempjets;
 
     t->Fill();
