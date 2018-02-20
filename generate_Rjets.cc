@@ -193,13 +193,35 @@ int jetMax1(std::vector<Jet> jets, float* jet, float max){
   return r;
 }
 /* finds the highest pT jet from a group of jets with pT less than max*/
-void jetMax1(std::vector<Jet> jets, Jet* rJet,float max){
+void jetMax1(std::vector<Jet> jets, Jet* rJet){ // strong chance this is broken
   assert(jets.size()>0);
+  float max=0;
   for(unsigned i=0; i<jets.size(); i++){
     if (jets[i].pT>max)
     {
       max=jets[i].pT;
-      rJet= &jets[i];
+      rJet->pT= max;
+      rJet->r= jets[i].r;
+      rJet->phi= jets[i].phi;
+      rJet->y = jets[i].y;
+      rJet->fatratio = jets[i].fatratio;
+      rJet->mult= jets[i].mult;
+    }
+  }
+}
+void jetMax1(std::vector<Jet> jets, Jet* rJet, float top){ // strong chance this is broken
+  assert(jets.size()>0);
+  float max=0;
+  for(unsigned i=0; i<jets.size(); i++){
+    if (jets[i].pT>max&&jets[i].pT!=top)
+    {
+      max=jets[i].pT;
+      rJet->pT= max;
+      rJet->r= jets[i].r;
+      rJet->phi= jets[i].phi;
+      rJet->y = jets[i].y;
+      rJet->fatratio = jets[i].fatratio;
+      rJet->mult= jets[i].mult;
     }
   }
 }
@@ -294,7 +316,7 @@ std::vector<Jet> fillJets(std::vector<Jet> myJets, std::vector<Jet> Tjets){
       if(myJets[i].fatratio<.9){ //if jet does not have enough energy
       // std::cout<<"delR: ";
        for(unsigned j=0; j<Tjets.size();j++){  //find corresponding higher jet
-         dR[j] = delR(myJets[i],Tjets[j]);
+         dR[j] = delR(myJets[i],Tjets[j]);  //matching by dR but maybe match by within cone is better ?
         // std::cout<<dR[j]<<" ";
          //std::cout<<"loop if for"<<std::endl;
        }
@@ -370,12 +392,8 @@ std::vector<Jet> jetFinalFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){
   Jet temp;
   jetMax1(jets,&temp,0);
   bool pass= temp.pT>fitNUM&&temp.pT<fitMAX;
-  if(!pass){
-    std::vector<Jet> no(0);
-    return no;
-  }
-  else{
-    std::vector<Jet> v(0);
+  std::vector<Jet> v(0);
+  if(pass){
     for (unsigned i = 0; i < jets.size(); ++i)
     {
       if (jets[i].pT>=25)
@@ -383,6 +401,17 @@ std::vector<Jet> jetFinalFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){
         v.push_back(jets[i]);
       }
     }
+  }
+  return v;
+}
+std::vector<Jet> fatjetFilter(std::vector<Jet> jets, int fitNUM){ 
+  bool pass= jets[0].pT>=fitNUM;
+  if(pass){
+    return jets;
+  }
+  else{
+    std::vector<Jet> v(0);
+    return v;
   }
 }
 std::vector<Jet> jetFilter(std::vector<Jet> jets, int fitNUM, int fitMAX){ 
@@ -449,19 +478,20 @@ inline float maxJet(std::vector<Jet> v){
   return r;
 }
 
-void fillXjs(int i, XjT* Xjs, std::vector<Jet> myJets){
+void fillXjs(XjT* xT, std::vector<Jet> myJets){
   printJets(myJets,"filling Xj");
   assert(myJets.size()>1);
   Jet jettemp1;
   jetMax1(myJets,&jettemp1,0);
-  assert(jettemp1.pT!=0);
+  assert(jettemp1.pT>0);
   cout<<&jettemp1<<": "<<jettemp1.pT;
   Jet jettemp2;
   jetMax1(myJets,&jettemp2,jettemp1.pT);
-  cout<<" "<<&jettemp2<<": "<<jettemp2.pT;
-  assert(jettemp1.pT!=0&&jettemp2.pT!=0);
-  Xjs[i].Xj = fixXj(jettemp1,jettemp2);
-  Xjs[i].r = maxFloat(jettemp1.r,jettemp2.r);
+  assert(jettemp2.pT>0);
+  cout<<" "<<&jettemp2<<": "<<jettemp2.pT<<" Xj: ";
+  xT->Xj = fixXj(jettemp1,jettemp2);
+  cout<<xT->Xj<<"\n";
+  xT->r = maxFloat(jettemp1.r,jettemp2.r);
 }
 
 void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEvent){
@@ -488,6 +518,8 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
   const float step =.05;
   const float minR = .05;
+  const float maxR = 1;
+  const float maxloop = (maxR-minR)/step;
   std::vector<SlowJet*> tempjet(0);
   SlowJet* deltemp = NULL;
   int tempjetcounter;
@@ -510,6 +542,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   		cout<<"Event N: "<<iEvent<<'\n';
     if (!pythia.next()){
       cout<<"pythia.next() failed"<<"\n";
+      nEvent--;
       continue;
     }
     //std::cout<<"event loop"<<iEvent<<'\n';
@@ -517,7 +550,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     clear(&myJets);
     clear(&fats);
     clear(&jets);
-    tempjet.push_back( new SlowJet(-1,1,10,4,2,1));  //set up the comparison jets
+    tempjet.push_back( new SlowJet(-1,maxR,10,4,2,1));  //set up the comparison jets
     tempjet[0]->analyze(pythia.event);
     for(int i=0; i<tempjet[0]->sizeJet(); i++){
       jettemp1.pT = (float) tempjet[0]->pT(i);
@@ -527,9 +560,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       jettemp1.r = 1;
       fats.push_back(jettemp1);
     }
-    jetFilter(fats,fitNUM,fitMAX);
+    printJets(fats,"unfiltered fat");
+    fats=fatjetFilter(fats,fitNUM);
     printJets(fats, "filtered fat");
     if(fats.size()<=1){
+      nEvent--;
       continue;
     }
 
@@ -547,7 +582,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
 
     eventRatio=0;
     tempjetcounter=1;
-    while(eventRatio<.9&&jetfindcounter<=19){
+    while(eventRatio<.9&&jetfindcounter<=maxloop){ // <= or just < ??
       tempjetcounter++;
       tempjet.push_back(new SlowJet(-1,step*jetfindcounter+minR,10,4,2,1) );
       jetfindcounter++;
@@ -573,6 +608,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
           printJets(jets,"new jets");
           myJets = fillJets(myJets,jets);
           printJets(myJets, "post fill");
+          printJets(fats,"fats");
           /*
           cout<<"myJets: \n";
           for(unsigned i=0; i<myJets.size(); i++){
@@ -583,19 +619,19 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
             cout<<&jets[i]<<": "<<jets[i].pT<<", "<<jets[i].r<<"\n";
           }*/
         //printJets(myJets,"mjets2");
-          eventRatio = findRatio(myJets,fats);
         }
         else{
           myJets=jets;
         }
-     }
-     else{
-      deltemp = tempjet.back();
-      tempjet.pop_back();
-      delete deltemp;
-      deltemp=NULL;
-      tempjetcounter--;
-     }
+        eventRatio = findRatio(myJets,fats);
+      }
+      else{
+        deltemp = tempjet.back();
+        tempjet.pop_back();
+        delete deltemp;
+        deltemp=NULL;
+        tempjetcounter--;
+      }
       std::cout<<"Event ratio: "<<eventRatio<<"\n";
     }
     while(!tempjet.empty()){
@@ -607,34 +643,29 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     printJets(myJets,"before filter");
     myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
     if(myJets.size()<=1){
+      nEvent--;
       continue;
     }
     printJets(myJets,"after filter");
    	tempjets=myJets;
 //0
-    fillXjs(0,&Xjs[0],myJets);
-    cout<<"Xj: "<<Xjs[0].Xj<<"\n";
+    fillXjs(&Xjs[0],myJets);
 //1
+    float tempenergy;
+    
+    for(unsigned i=0; i<myJets.size();++i){ 
+      myJets[i].pT=myJets[i].pT * TMath::Power(E,randomPositive(7,7)*myJets[i].r*myJets[i].r);
+     }
+    printJets(myJets,"fill 2");
+    fillXjs(&Xjs[1],myJets);
+    myJets=tempjets;
+//2   cuts are making negative numbers
     
     for(unsigned i=0; i<myJets.size();++i){
-      myJets[i].pT=myJets[i].pT-randomPositive(15,10)/(1-TMath::Power((1-((myJets[i].r*myJets[i].r)/(1.1*1.1))),.5));
+       myJets[i].pT=myJets[i].pT-randomPositive(10,5)*myJets[i].r*myJets[i].r;
      }
-    fillXjs(1,&Xjs[1],myJets);
+    fillXjs(&Xjs[2],myJets);
     myJets=tempjets;
-//2
-    for(unsigned i=0; i<myJets.size();++i){
-       myJets[i].pT=myJets[i].pT-randomPositive(15,10)*myJets[i].r*20*myJets[i].r;
-     }
-    fillXjs(2,&Xjs[2],myJets);
-    myJets=tempjets;
-
-    /*eventRadius = maxFloat(fR[0],fR[1]);  // does the by radius data colelction nR may be buggy so not using until needed
-    for(int i=preN; i<nR;i++){
-    	Xjs[i].r =minR+step*(i-preN-1);
-    	Xjs[i].Xj=0;
-    	if(Xjs[i].r==eventRadius)
-    		Xjs[i].Xj=Xjs[0].Xj;
-    }*/
 
     t->Fill();
   }
