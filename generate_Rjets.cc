@@ -662,7 +662,7 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     tempjets=myJets;
     myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
     //0
-    if(myJets.size()<=1){
+    if(myJets.size()>1){
       printJets(myJets,"after filter");
       fillXjs(&Xjs[0],myJets);
     }  
