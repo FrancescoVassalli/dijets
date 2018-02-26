@@ -550,13 +550,15 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
   std::vector<Jet> myJets;
   std::vector<Jet> fats;
   std::vector<Jet> tempjets;
+  string user_input;
+  bool runloop=true;
 
-  for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
+  for (int iEvent = 0; iEvent < nEvent&&runloop; ++iEvent) {
   	if(iEvent%30==0)  
   		cout<<"Event N: "<<iEvent<<'\n';
     if (!pythia.next()){
       cout<<"pythia.next() failed"<<"\n";
-      nEvent--;
+      iEvent--;
       continue;
     }
     //std::cout<<"event loop"<<iEvent<<'\n';
@@ -580,10 +582,17 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       fats.push_back(jettemp1);
     }
     printJets(fats,"unfiltered fat");
-    fats=fatjetFilter(fats,fitNUM);
+    fats=fatjetFilter(fats,fitNUM); // need to change where I do cuts to make all quenching work
     printJets(fats, "filtered fat");
     if(fats.size()<=1){
-      nEvent--;
+      cout<<"Fat cut on Event "<<iEvent<<" continue?: "<<std::endl;
+      getline(cin,user_input);
+      if(user_input[0]=='y'){
+        iEvent--;
+      }
+      else{
+        runloop=false;
+      }
       continue;
     }
 
@@ -650,16 +659,17 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
       deltemp=NULL;
     }
     printJets(myJets,"before filter");
+    tempjets=myJets;
     myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
-    if(myJets.size()<=1){
-      nEvent--;
+    /*if(myJets.size()<=1){
+      iEvent--;
       continue;
-    }
+    }*/
     printJets(myJets,"after filter");
-   	tempjets=myJets;
 //0
     fillXjs(&Xjs[0],myJets);
 //1
+    myJets=tempjets;
     float tempenergy;
     
     for(unsigned i=0; i<myJets.size();++i){ 
