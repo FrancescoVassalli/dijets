@@ -661,13 +661,11 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     printJets(myJets,"before filter");
     tempjets=myJets;
     myJets =jetFinalFilter(myJets,fitNUM,fitMAX);
-    /*if(myJets.size()<=1){
-      iEvent--;
-      continue;
-    }*/
-    printJets(myJets,"after filter");
-//0
-    fillXjs(&Xjs[0],myJets);
+    //0
+    if(myJets.size()<=1){
+      printJets(myJets,"after filter");
+      fillXjs(&Xjs[0],myJets);
+    }  
 //1
     myJets=tempjets;
     float tempenergy;
