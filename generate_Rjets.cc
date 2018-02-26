@@ -585,14 +585,14 @@ void makedata(std::string filename,int fitNUM, int fitMAX, bool lowpT, int nEven
     fats=fatjetFilter(fats,fitNUM); // need to change where I do cuts to make all quenching work
     printJets(fats, "filtered fat");
     if(fats.size()<=1){
-      cout<<"Fat cut on Event "<<iEvent<<" continue?: "<<std::endl;
+      /*cout<<"Fat cut on Event "<<iEvent<<" continue?: "<<std::endl;
       getline(cin,user_input);
-      if(user_input[0]=='y'){
+      if(user_input[0]=='y'){*/
         iEvent--;
-      }
+      /*}
       else{
         runloop=false;
-      }
+      }*/
       continue;
     }
 
